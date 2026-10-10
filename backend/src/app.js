@@ -1,4 +1,6 @@
-﻿const express = require('express');
+﻿const { verifyToken } = require('./middlewares/auth.middleware');
+const { requireAdmin } = require('./middlewares/role.middleware');
+const express = require('express');
 const cors = require('cors');
 
 const app = express();
@@ -13,6 +15,11 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', message: 'Backend Ä‘ang cháº¡y' });
 });
 
+// Admin Routes (Giai đoạn 1: Category, Author, Publisher)
+app.use('/api/admin/categories', verifyToken, requireAdmin, require('./routes/admin/category.routes'));
+app.use('/api/admin/authors', verifyToken, requireAdmin, require('./routes/admin/author.routes'));
+app.use('/api/admin/publishers', verifyToken, requireAdmin, require('./routes/admin/publisher.routes'));
+
 // Routes sáº½ Ä‘Äƒng kÃ½ 
 // app.use('/api/books', require('./routes/book.routes'));
 app.use('/api/categories', require('./routes/category_routes'));
@@ -26,3 +33,5 @@ app.use((err, req, res, next) => {
 app.use('/api/auth', require('./routes/auth.routes'));
 
 module.exports = app;
+
+

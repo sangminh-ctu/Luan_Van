@@ -17,7 +17,6 @@ const showAccountMenu = ref(false)
       <div class="container d-flex align-items-center justify-content-between gap-4">
         
         <!-- Logo -->
-       
         <router-link to="/" class="text-decoration-none">
           <img src="../../assets/images/logo/logo1.png" alt="FAHASA" height="40" style="object-fit: contain;">
         </router-link>
@@ -28,13 +27,11 @@ const showAccountMenu = ref(false)
           <!-- Icon Menu dạng lưới -->
           <div class="d-flex align-items-center text-secondary custom-icon-btn px-2" style="cursor: pointer;">
             <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-              <!-- 3 ô vuông và 1 ô tròn -->
               <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
               <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
               <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
               <circle cx="17.5" cy="6.5" r="3.5"></circle>
             </svg>
-            <!-- Mũi tên nhỏ xổ xuống -->
             <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor" class="ms-1" viewBox="0 0 16 16" style="margin-top: 2px;">
               <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
             </svg>
@@ -50,10 +47,9 @@ const showAccountMenu = ref(false)
               </svg>
             </button>
           </div>
-
         </div>
 
-        <!-- Các Nút Icon  -->
+        <!-- Các Nút Icon -->
         <div class="d-flex align-items-center gap-4 ms-3">
           <!-- Thông Báo -->
           <div class="text-center text-secondary custom-icon-btn d-flex flex-column align-items-center">
@@ -107,7 +103,7 @@ const showAccountMenu = ref(false)
       <div class="container d-flex align-items-center">
         <!-- Nút Danh mục -->
         <div class="text-white px-3 py-2 fw-bold d-flex align-items-center gap-2" style="background-color: #c92127; border-top-left-radius: 8px; border-top-right-radius: 8px; cursor: pointer;">
-          <span>≡</span> DANH MỤC SẢN PHẨM <span class="ms-1">▾</span>
+          <span>☰</span> DANH MỤC SẢN PHẨM <span class="ms-1">▼</span>
         </div>
         
         <!-- Navbar link -->

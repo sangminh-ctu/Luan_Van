@@ -17,13 +17,13 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     function logout() {
-        const wasAdmin = isAdmin.value;
         token.value = null;
         user.value = null;
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         
-        if (wasAdmin) {
+        // Cải tiến: Nếu đang ở các trang quản trị thì đẩy về admin/login, ngược lại về /login chung
+        if (router.currentRoute.value.path.startsWith('/admin')) {
             router.push('/admin/login');
         } else {
             router.push('/login');

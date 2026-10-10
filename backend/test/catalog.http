@@ -1,0 +1,36 @@
+﻿@baseUrl = http://localhost:5000/api
+# Thay thế chuỗi <token_cua_admin_o_day> bằng Token thật của tài khoản Admin khi bạn đăng nhập
+@adminToken = <token_cua_admin_o_day>
+
+### 1. LẤY DANH SÁCH THỂ LOẠI
+GET {{baseUrl}}/admin/categories
+Authorization: Bearer {{adminToken}}
+
+### 2. TẠO THỂ LOẠI MỚI (Cha)
+POST {{baseUrl}}/admin/categories
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+    "category_name": "Công Nghệ Thông Tin"
+}
+
+### 3. TẠO TÁC GIẢ MỚI
+POST {{baseUrl}}/admin/authors
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+    "author_name": "Ngô Bảo Châu",
+    "bio": "Giáo sư toán học"
+}
+
+### 4. TẠO NHÀ XUẤT BẢN MỚI
+POST {{baseUrl}}/admin/publishers
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+    "publisher_name": "NXB Kim Đồng",
+    "address": "Hà Nội"
+}
