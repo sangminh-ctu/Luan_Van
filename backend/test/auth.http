@@ -1,0 +1,80 @@
+@baseUrl = http://localhost:5000/api
+
+### 1) Đăng ký mới
+# @name registerCustomer
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+    "full_name": "Test Customer",
+    "email": "test@customer.com",
+    "password": "password123",
+    "phone": "0912345678"
+}
+
+### 2) Đăng ký trùng email (Mong đợi: 409)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+    "full_name": "Test Clone",
+    "email": "test@customer.com",
+    "password": "password123"
+}
+
+### 3) Đăng nhập sai mật khẩu (Mong đợi: 401)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "test@customer.com",
+    "password": "wrongpassword"
+}
+
+### 4) Đăng nhập khách (Mong đợi: 200, lấy được token)
+# @name loginCustomer
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "test@customer.com",
+    "password": "password123"
+}
+
+@customerToken = {{loginCustomer.response.body.token}}
+
+### 5) Khách gọi /auth/admin/login (Mong đợi: 403)
+POST {{baseUrl}}/auth/admin/login
+Content-Type: application/json
+
+{
+    "email": "test@customer.com",
+    "password": "password123"
+}
+
+### 6) Admin gọi /auth/admin/login (Mong đợi: 200)
+# @name loginAdmin
+POST {{baseUrl}}/auth/admin/login
+Content-Type: application/json
+
+{
+    "email": "admin@bookstore.com",
+    "password": "{{$dotenv ADMIN_PASSWORD}}"
+}
+
+@adminToken = {{loginAdmin.response.body.token}}
+
+### 7) GET /auth/me không token (Mong đợi: 401)
+GET {{baseUrl}}/auth/me
+
+### 8) GET /auth/me token khách (Mong đợi: 200)
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{customerToken}}
+
+### 9) GET /auth/admin-only token khách (Mong đợi: 403)
+GET {{baseUrl}}/auth/admin-only
+Authorization: Bearer {{customerToken}}
+
+### 10) GET /auth/admin-only token admin (Mong đợi: 200)
+GET {{baseUrl}}/auth/admin-only
+Authorization: Bearer {{adminToken}}
