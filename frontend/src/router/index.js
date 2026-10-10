@@ -7,16 +7,15 @@ import CustomerLayout from '@/layouts/CustomerLayout.vue'
 // Views
 import HomeView from '@/views/customer/HomeView.vue'
 import DashboardView from '@/views/admin/DashboardView.vue'
-import LoginView from '@/views/auth/LoginView.vue'
-import RegisterView from '@/views/auth/RegisterView.vue'
+import AuthView from '@/views/auth/AuthView.vue'
 import AdminLoginView from '@/views/auth/AdminLoginView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     // --- CÁC TRANG AUTH KHÔNG CÓ LAYOUT ---
-    { path: '/login', name: 'login', component: LoginView },
-    { path: '/register', name: 'register', component: RegisterView },
+    { path: '/login', name: 'login', component: AuthView },
+    { path: '/register', name: 'register', component: AuthView },
     { path: '/admin/login', name: 'admin-login', component: AdminLoginView },
 
     // --- CÁC TRANG CỦA KHÁCH HÀNG ---
