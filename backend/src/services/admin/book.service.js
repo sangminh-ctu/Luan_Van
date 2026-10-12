@@ -21,8 +21,8 @@ class BookService {
 
         const where = {};
         
-        // Lọc theo trạng thái ẩn/hiển thị (Mặc định admin xem được hết, hoặc truyền is_active)
-        if (query.is_active !== undefined) {
+        // Lọc theo trạng thái ẩn/hiển thị (Nếu không chọn hoặc rỗng thì xem tất cả)
+        if (query.is_active !== undefined && query.is_active !== '' && query.is_active !== null) {
             where.is_active = query.is_active === 'true' || query.is_active === true;
         }
 
@@ -120,6 +120,7 @@ class BookService {
             const {
                 title, isbn, cover_type, price, discount_percent,
                 description, publication_year, page_count, weight,
+                length, width, height,
                 category_id, publisher_id, authors, images
             } = data;
 
@@ -133,7 +134,10 @@ class BookService {
                 description,
                 publication_year: publication_year ? parseInt(publication_year, 10) : null,
                 page_count: page_count ? parseInt(page_count, 10) : null,
-                weight: weight ? parseFloat(weight) : null,
+                weight: weight !== undefined && weight !== null && weight !== '' ? parseFloat(weight) : null,
+                length: length !== undefined && length !== null && length !== '' ? parseFloat(length) : null,
+                width: width !== undefined && width !== null && width !== '' ? parseFloat(width) : null,
+                height: height !== undefined && height !== null && height !== '' ? parseFloat(height) : null,
                 category_id: parseInt(category_id, 10),
                 publisher_id: publisher_id ? parseInt(publisher_id, 10) : null,
                 is_active: true
@@ -206,6 +210,7 @@ class BookService {
             const {
                 title, isbn, cover_type, price, discount_percent,
                 description, publication_year, page_count, weight,
+                length, width, height,
                 category_id, publisher_id, is_active, authors, images
             } = data;
 
@@ -219,7 +224,10 @@ class BookService {
                 description: description !== undefined ? description : book.description,
                 publication_year: publication_year !== undefined ? (publication_year ? parseInt(publication_year, 10) : null) : book.publication_year,
                 page_count: page_count !== undefined ? (page_count ? parseInt(page_count, 10) : null) : book.page_count,
-                weight: weight !== undefined ? (weight ? parseFloat(weight) : null) : book.weight,
+                weight: weight !== undefined ? (weight !== null && weight !== '' ? parseFloat(weight) : null) : book.weight,
+                length: length !== undefined ? (length !== null && length !== '' ? parseFloat(length) : null) : book.length,
+                width: width !== undefined ? (width !== null && width !== '' ? parseFloat(width) : null) : book.width,
+                height: height !== undefined ? (height !== null && height !== '' ? parseFloat(height) : null) : book.height,
                 category_id: category_id !== undefined ? parseInt(category_id, 10) : book.category_id,
                 publisher_id: publisher_id !== undefined ? (publisher_id ? parseInt(publisher_id, 10) : null) : book.publisher_id,
                 is_active: is_active !== undefined ? is_active : book.is_active

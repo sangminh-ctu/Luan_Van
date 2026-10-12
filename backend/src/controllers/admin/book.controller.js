@@ -68,12 +68,30 @@ exports.createBook = async (req, res) => {
 // Cập nhật sách
 exports.updateBook = async (req, res) => {
     try {
+        const { price, discount_percent, title } = req.body;
+
+        if (title !== undefined && (!title || !title.trim())) {
+            return res.status(400).json({ message: 'Tên sách không được để trống' });
+        }
+        if (price !== undefined && (isNaN(price) || parseFloat(price) < 0)) {
+            return res.status(400).json({ message: 'Giá sách phải lớn hơn hoặc bằng 0' });
+        }
+        if (discount_percent !== undefined) {
+            const dp = parseFloat(discount_percent);
+            if (isNaN(dp) || dp < 0 || dp > 100) {
+                return res.status(400).json({ message: 'Phần trăm giảm giá phải từ 0 đến 100%' });
+            }
+        }
+
         const updatedBook = await bookService.updateBook(req.params.id, req.body);
         res.json(updatedBook);
     } catch (error) {
         if (error.status === 404) return res.status(404).json({ message: error.message });
         if (error.name === 'SequelizeUniqueConstraintError') {
             return res.status(409).json({ message: 'Mã ISBN đã tồn tại trong hệ thống' });
+        }
+        if (error.message?.includes('book_discount_percent_check') || error.parent?.message?.includes('book_discount_percent_check')) {
+            return res.status(400).json({ message: 'Phần trăm giảm giá không hợp lệ (phải từ 0% đến 100%)' });
         }
         res.status(500).json({ message: 'Lỗi cập nhật sách: ' + error.message });
     }

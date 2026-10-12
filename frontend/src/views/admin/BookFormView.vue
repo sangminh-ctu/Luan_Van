@@ -7,7 +7,7 @@
       </router-link>
       <div>
         <h4 class="fw-bold text-dark mb-0">{{ isEditMode ? 'Chỉnh sửa Sách' : 'Thêm Sách mới' }}</h4>
-        <small class="text-muted">{{ isEditMode ? 'Cập nhật thông tin chi tiết và bảo toàn vector ảnh' : 'Tạo mới cuốn sách kèm tác giả, hình ảnh và khởi tạo tồn kho' }}</small>
+        <small class="text-muted">{{ isEditMode ? 'Cập nhật thông tin chi tiết' : 'Tạo mới cuốn sách kèm tác giả, hình ảnh và khởi tạo tồn kho' }}</small>
       </div>
     </div>
 
@@ -41,26 +41,58 @@
                 </div>
                 <div class="col-md-6">
                   <label class="form-label fw-bold text-secondary small">Loại bìa</label>
-                  <select class="form-select" v-model="form.cover_type">
-                    <option value="Bìa mềm">Bìa mềm</option>
-                    <option value="Bìa cứng">Bìa cứng</option>
-                    <option value="Bìa gập">Bìa gập</option>
-                  </select>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    list="coverTypeOptions" 
+                    v-model="form.cover_type" 
+                    placeholder="Chọn gợi ý hoặc tự nhập loại bìa mới..."
+                  >
+                  <datalist id="coverTypeOptions">
+                    <option value="Bìa mềm"></option>
+                    <option value="Bìa cứng"></option>
+                    <option value="Bìa gập (Tay gập)"></option>
+                    <option value="Bìa da"></option>
+                    <option value="Bìa áo (Dust jacket)"></option>
+                    <option value="Boxset (Bộ hộp)"></option>
+                  </datalist>
                 </div>
               </div>
 
               <div class="row g-3 mb-3">
-                <div class="col-md-4">
+                <div class="col-md-6">
                   <label class="form-label fw-bold text-secondary small">Năm xuất bản</label>
                   <input type="number" class="form-control" v-model.number="form.publication_year" placeholder="VD: 2024">
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-6">
                   <label class="form-label fw-bold text-secondary small">Số trang</label>
                   <input type="number" class="form-control" v-model.number="form.page_count" placeholder="VD: 320">
                 </div>
-                <div class="col-md-4">
+              </div>
+
+              <!-- Kích thước và Trọng lượng (Phục vụ đóng gói & Vận chuyển) -->
+              <div class="row g-3 mb-3 p-3 bg-light rounded-3 border">
+                <div class="col-md-3">
                   <label class="form-label fw-bold text-secondary small">Trọng lượng (gram)</label>
                   <input type="number" step="0.1" class="form-control" v-model.number="form.weight" placeholder="VD: 450">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label fw-bold text-secondary small">Chiều dài (cm)</label>
+                  <input type="number" step="0.1" class="form-control" v-model.number="form.length" placeholder="VD: 20.5">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label fw-bold text-secondary small">Chiều rộng (cm)</label>
+                  <input type="number" step="0.1" class="form-control" v-model.number="form.width" placeholder="VD: 14.5">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label fw-bold text-secondary small">Độ dày / cao (cm)</label>
+                  <input type="number" step="0.1" class="form-control" v-model.number="form.height" placeholder="VD: 1.8">
+                </div>
+                <div class="col-12 mt-2">
+                  <small class="text-muted fst-italic">
+                    <i class="bi bi-box-seam me-1"></i> Kích thước đóng gói: 
+                    <strong>{{ (form.length || 0) }} x {{ (form.width || 0) }} x {{ (form.height || 0) }} cm</strong>
+                  </small>
                 </div>
               </div>
 
@@ -215,7 +247,7 @@
                         @change="setPrimaryImage(idx)"
                       >
                       <label class="form-check-label small fw-bold cursor-pointer" :for="`imgRadio${idx}`">
-                        {{ img.is_primary ? 'Ảnh chính ⭐' : 'Ảnh phụ' }}
+                        {{ img.is_primary ? 'Ảnh chính' : 'Ảnh phụ' }}
                       </label>
                     </div>
                   </div>
@@ -277,6 +309,9 @@ const form = reactive({
   publication_year: new Date().getFullYear(),
   page_count: null,
   weight: null,
+  length: null,
+  width: null,
+  height: null,
   category_id: '',
   publisher_id: null,
   is_active: true,
@@ -374,6 +409,9 @@ const loadBookDetails = async (id) => {
     form.publication_year = book.publication_year
     form.page_count = book.page_count
     form.weight = book.weight
+    form.length = book.length
+    form.width = book.width
+    form.height = book.height
     form.category_id = book.category_id
     form.publisher_id = book.publisher_id
     form.is_active = book.is_active
@@ -410,10 +448,16 @@ const handleSubmit = async () => {
 
   try {
     isSaving.value = true
-    alertMsg.value = ''
+    const discountVal = form.discount_percent === '' || form.discount_percent === null ? 0 : Number(form.discount_percent)
+    if (isNaN(discountVal) || discountVal < 0 || discountVal > 100) {
+      alertMsg.value = 'Phần trăm giảm giá phải nằm trong khoảng từ 0% đến 100%!'
+      return
+    }
 
     const payload = {
       ...form,
+      price: Number(form.price) || 0,
+      discount_percent: discountVal,
       authors: validAuthors
     }
 

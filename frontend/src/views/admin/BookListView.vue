@@ -43,9 +43,9 @@
           </div>
           <div class="col-md-2">
             <select class="form-select shadow-none" v-model="filters.is_active" @change="handleSearch">
-              <option value="">-- Trạng thái --</option>
               <option value="true">Đang hiển thị</option>
               <option value="false">Đang ẩn</option>
+              <option value="">Tất cả trạng thái</option>
             </select>
           </div>
           <div class="col-md-2 d-flex gap-2">
@@ -207,7 +207,7 @@ const alertMsg = ref('')
 const filters = reactive({
   search: '',
   category_id: '',
-  is_active: '',
+  is_active: 'true',
   page: 1,
   limit: 10
 })
