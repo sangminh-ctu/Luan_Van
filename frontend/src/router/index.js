@@ -8,6 +8,8 @@ import AdminLayout from '@/layouts/AdminLayout.vue'
 // Views
 import HomeView from '@/views/customer/HomeView.vue'
 import DashboardView from '@/views/admin/DashboardView.vue'
+import BookListView from '@/views/admin/BookListView.vue'
+import BookFormView from '@/views/admin/BookFormView.vue'
 import CategoryView from '@/views/admin/CategoryView.vue'
 import AuthorView from '@/views/admin/AuthorView.vue'
 import PublisherView from '@/views/admin/PublisherView.vue'
@@ -38,7 +40,9 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresAdmin: true },
       children: [
         { path: '', name: 'admin-dashboard', component: DashboardView },
-        { path: 'books', name: 'admin-books', component: DashboardView },
+        { path: 'books', name: 'admin-books', component: BookListView },
+        { path: 'books/create', name: 'admin-books-create', component: BookFormView },
+        { path: 'books/:id/edit', name: 'admin-books-edit', component: BookFormView },
         { path: 'categories', name: 'admin-categories', component: CategoryView },
         { path: 'authors', name: 'admin-authors', component: AuthorView },
         { path: 'publishers', name: 'admin-publishers', component: PublisherView },

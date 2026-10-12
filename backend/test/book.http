@@ -1,0 +1,61 @@
+@baseUrl = http://localhost:5000/api
+# Thay thế chuỗi <token_cua_admin> bằng token Admin thật khi test
+@adminToken = <token_cua_admin>
+
+### 1. LẤY DANH SÁCH SÁCH (Phân trang, lọc)
+GET {{baseUrl}}/admin/books?page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+### 2. TẠO SÁCH MỚI (Có tác giả, ảnh, tự tạo Tồn kho = 0)
+POST {{baseUrl}}/admin/books
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "title": "Nhà Giả Kim (Bản Thử Nghiệm)",
+  "isbn": "9786045892345",
+  "cover_type": "Bìa mềm",
+  "price": 79000,
+  "discount_percent": 20,
+  "description": "Một cuốn sách kinh điển về hành trình theo đuổi ước mơ.",
+  "publication_year": 2023,
+  "page_count": 224,
+  "weight": 250,
+  "category_id": 1,
+  "publisher_id": 1,
+  "authors": [
+    { "author_id": 1, "role": "author" },
+    { "author_id": 2, "role": "translator" }
+  ],
+  "images": [
+    { "image_url": "/uploads/books/sample-cover.jpg", "is_primary": true }
+  ]
+}
+
+### 3. LẤY CHI TIẾT SÁCH (Kèm Tác giả, Ảnh, Tồn kho)
+GET {{baseUrl}}/admin/books/1
+Authorization: Bearer {{adminToken}}
+
+### 4. CẬP NHẬT SÁCH (Bảo toàn embedding vector của ảnh cũ)
+PUT {{baseUrl}}/admin/books/1
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "title": "Nhà Giả Kim (Tái Bản Đặc Biệt)",
+  "price": 85000,
+  "discount_percent": 15
+}
+
+### 5. ẨN / HIỆN SÁCH (Soft Toggle - Khuyên dùng)
+PATCH {{baseUrl}}/admin/books/1/toggle-active
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "is_active": false
+}
+
+### 6. XÓA CỨNG SÁCH (Chỉ thành công khi sách chưa có đơn hàng / phiếu kho)
+DELETE {{baseUrl}}/admin/books/1
+Authorization: Bearer {{adminToken}}

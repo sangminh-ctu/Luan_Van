@@ -147,3 +147,9 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Uploaded files
+backend/uploads/
+/backend/uploads/
+uploads/
+

@@ -108,6 +108,9 @@ exports.login = async (req, res) => {
 
 exports.adminLogin = async (req, res) => {
     try {
+        if (!req.body) {
+            return res.status(400).json({ message: "Vui lòng nhập email và mật khẩu qua body JSON" });
+        }
         let { email, password } = req.body;
 
         if (!email || !password) {
