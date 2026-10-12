@@ -157,74 +157,76 @@
                 Chưa có tác giả nào. Hãy bấm "Thêm dòng" ở trên.
               </div>
               
-              <div v-for="(item, index) in form.authors" :key="index" class="row g-2 align-items-center mb-3 p-2 rounded-3 bg-light border">
-                <!-- Cột Chọn / Tìm kiếm tác giả -->
-                <div class="col-md-7 position-relative">
-                  <div class="input-group">
-                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                    <input 
-                      type="text" 
-                      class="form-control border-start-0 shadow-none" 
-                      v-model="item.searchKeyword"
-                      placeholder="Gõ tên tác giả để tìm..."
-                      @focus="item.showDropdown = true"
-                      @input="item.showDropdown = true"
+              <div v-for="(item, index) in form.authors" :key="index" class="mb-3 p-3 rounded-3 bg-light border">
+                <div class="row g-2 align-items-center">
+                  <!-- Cột Chọn / Tìm kiếm tác giả -->
+                  <div class="col-md-7 position-relative">
+                    <div class="input-group">
+                      <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                      <input 
+                        type="text" 
+                        class="form-control border-start-0 shadow-none" 
+                        v-model="item.searchKeyword"
+                        placeholder="Gõ tên tác giả để tìm..."
+                        @focus="item.showDropdown = true"
+                        @input="item.showDropdown = true"
+                      >
+                      <button 
+                        v-if="item.author_id" 
+                        class="btn btn-outline-secondary" 
+                        type="button" 
+                        @click="clearAuthorSelection(item)"
+                        title="Hủy chọn"
+                      >
+                        <i class="bi bi-x-circle"></i>
+                      </button>
+                    </div>
+
+                    <!-- Dropdown gợi ý tìm kiếm -->
+                    <div 
+                      v-if="item.showDropdown" 
+                      class="position-absolute bg-white shadow-lg border rounded-3 w-100 mt-1 py-1 overflow-auto" 
+                      style="max-height: 200px; z-index: 1050; top: 100%; left: 0;"
                     >
-                    <button 
-                      v-if="item.author_id" 
-                      class="btn btn-outline-secondary" 
-                      type="button" 
-                      @click="clearAuthorSelection(item)"
-                      title="Chọn lại"
-                    >
-                      <i class="bi bi-x-circle"></i>
+                      <div 
+                        v-for="auth in filterAuthors(item.searchKeyword)" 
+                        :key="auth.author_id"
+                        class="px-3 py-2 cursor-pointer dropdown-item-author border-bottom"
+                        @click="selectAuthor(item, auth)"
+                      >
+                        <div class="fw-bold text-dark">{{ auth.author_name }}</div>
+                        <small class="text-muted text-truncate d-block" style="font-size: 11px;">{{ auth.bio || 'Chưa có tiểu sử' }}</small>
+                      </div>
+                      <div v-if="filterAuthors(item.searchKeyword).length === 0" class="px-3 py-2 text-muted small text-center">
+                        Không tìm thấy "{{ item.searchKeyword }}". 
+                        <a href="#" class="text-primary fw-bold text-decoration-none d-block mt-1" @click.prevent="openQuickAuthorModalWithKeyword(item.searchKeyword)">
+                          + Bấm vào đây để tạo nhanh tác giả này
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Cột Chọn vai trò -->
+                  <div class="col-md-4">
+                    <select class="form-select shadow-none" v-model="item.role">
+                      <option value="author">Tác giả</option>
+                      <option value="translator">Dịch giả</option>
+                    </select>
+                  </div>
+
+                  <!-- Nút Xóa dòng -->
+                  <div class="col-md-1 text-end">
+                    <button type="button" class="btn btn-outline-danger btn-sm p-2 w-100 d-flex align-items-center justify-content-center" @click="removeAuthorRow(index)" :disabled="form.authors.length <= 1" title="Xóa dòng này">
+                      <i class="bi bi-trash"></i>
                     </button>
                   </div>
-
-                  <!-- Dropdown gợi ý tìm kiếm -->
-                  <div 
-                    v-if="item.showDropdown" 
-                    class="position-absolute bg-white shadow-lg border rounded-3 w-100 mt-1 py-1 overflow-auto" 
-                    style="max-height: 200px; z-index: 1050; top: 100%; left: 0;"
-                  >
-                    <div 
-                      v-for="auth in filterAuthors(item.searchKeyword)" 
-                      :key="auth.author_id"
-                      class="px-3 py-2 cursor-pointer dropdown-item-author border-bottom"
-                      @click="selectAuthor(item, auth)"
-                    >
-                      <div class="fw-bold text-dark">{{ auth.author_name }}</div>
-                      <small class="text-muted text-truncate d-block" style="font-size: 11px;">{{ auth.bio || 'Chưa có tiểu sử' }}</small>
-                    </div>
-                    <div v-if="filterAuthors(item.searchKeyword).length === 0" class="px-3 py-2 text-muted small text-center">
-                      Không tìm thấy "{{ item.searchKeyword }}". 
-                      <a href="#" class="text-primary fw-bold text-decoration-none d-block mt-1" @click.prevent="openQuickAuthorModalWithKeyword(item.searchKeyword)">
-                        + Bấm vào đây để tạo nhanh tác giả này
-                      </a>
-                    </div>
-                  </div>
-
-                  <!-- Hiển thị badge đã chọn -->
-                  <div v-if="item.author_id" class="mt-1">
-                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle py-1 px-2">
-                      <i class="bi bi-check2-circle me-1"></i>Đã chọn: {{ getAuthorName(item.author_id) }}
-                    </span>
-                  </div>
                 </div>
 
-                <!-- Cột Chọn vai trò -->
-                <div class="col-md-4">
-                  <select class="form-select shadow-none" v-model="item.role">
-                    <option value="author">Tác giả</option>
-                    <option value="translator">Dịch giả</option>
-                  </select>
-                </div>
-
-                <!-- Nút Xóa dòng -->
-                <div class="col-md-1 text-end">
-                  <button type="button" class="btn btn-outline-danger btn-sm p-1" @click="removeAuthorRow(index)" :disabled="form.authors.length <= 1">
-                    <i class="bi bi-trash"></i>
-                  </button>
+                <!-- Hiển thị badge xác nhận đã chọn bên dưới (không làm lệch trục 3 ô trên) -->
+                <div v-if="item.author_id" class="mt-2 pt-1 border-top">
+                  <small class="text-success fw-bold">
+                    <i class="bi bi-check-circle-fill me-1"></i>Đã chọn thành công: {{ getAuthorName(item.author_id) }}
+                  </small>
                 </div>
               </div>
             </div>
