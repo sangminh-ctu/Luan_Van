@@ -1,4 +1,4 @@
-﻿import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 
 // Layouts
@@ -9,18 +9,20 @@ import AdminLayout from '@/layouts/AdminLayout.vue'
 import HomeView from '@/views/customer/HomeView.vue'
 import DashboardView from '@/views/admin/DashboardView.vue'
 import CategoryView from '@/views/admin/CategoryView.vue'
+import AuthorView from '@/views/admin/AuthorView.vue'
+import PublisherView from '@/views/admin/PublisherView.vue'
 import AuthView from '@/views/auth/AuthView.vue'
 import AdminLoginView from '@/views/auth/AdminLoginView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    // --- CÃC TRANG AUTH KHÃ”NG CÃ“ LAYOUT ---
+    // --- CÁC TRANG AUTH KHÔNG CÓ LAYOUT ---
     { path: '/login', name: 'login', component: AuthView },
     { path: '/register', name: 'register', component: AuthView },
     { path: '/admin/login', name: 'admin-login', component: AdminLoginView },
 
-    // --- CÃC TRANG Cá»¦A KHÃCH HÃ€NG ---
+    // --- CÁC TRANG CỦA KHÁCH HÀNG ---
     {
       path: '/',
       component: CustomerLayout,
@@ -29,18 +31,17 @@ const router = createRouter({
       ]
     },
 
-    // --- CÃC TRANG Cá»¦A ADMIN ---
+    // --- CÁC TRANG CỦA ADMIN ---
     {
       path: '/admin',
       component: AdminLayout,
       meta: { requiresAuth: true, requiresAdmin: true },
       children: [
         { path: '', name: 'admin-dashboard', component: DashboardView },
-        // ThÃªm route áº£o Ä‘á»ƒ trÃ¡nh bÃ¡o lá»—i khi click vÃ o menu
         { path: 'books', name: 'admin-books', component: DashboardView },
         { path: 'categories', name: 'admin-categories', component: CategoryView },
-        { path: 'authors', name: 'admin-authors', component: DashboardView },
-        { path: 'publishers', name: 'admin-publishers', component: DashboardView },
+        { path: 'authors', name: 'admin-authors', component: AuthorView },
+        { path: 'publishers', name: 'admin-publishers', component: PublisherView },
         { path: 'inventory', name: 'admin-inventory', component: DashboardView },
         { path: 'stock-receipts', name: 'admin-stock-receipts', component: DashboardView },
         { path: 'orders', name: 'admin-orders', component: DashboardView },
@@ -56,7 +57,7 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
 
-  // Kiá»ƒm tra route cáº§n Ä‘Äƒng nháº­p
+  // Kiểm tra route cần đăng nhập
   if (to.meta.requiresAuth && !authStore.isLoggedIn) {
     if (to.meta.requiresAdmin) {
       return next({ name: 'admin-login' })
@@ -64,12 +65,12 @@ router.beforeEach((to, from, next) => {
     return next({ name: 'login', query: { redirect: to.fullPath } })
   }
 
-  // Kiá»ƒm tra route cáº§n quyá»n admin
+  // Kiểm tra route cần quyền admin
   if (to.meta.requiresAdmin && !authStore.isAdmin) {
     return next({ name: 'admin-login' })
   }
 
-  // Náº¿u Ä‘Ã£ Ä‘Äƒng nháº­p mÃ  cá»‘ vÃ o láº¡i trang login/register thÃ¬ cháº·n
+  // Nếu đã đăng nhập mà cố vào lại trang login/register thì chặn
   if (authStore.isLoggedIn && (to.name === 'login' || to.name === 'register' || to.name === 'admin-login')) {
     if (authStore.isAdmin) {
       return next({ name: 'admin-dashboard' })
