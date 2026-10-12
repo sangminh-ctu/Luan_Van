@@ -71,28 +71,30 @@
               </div>
 
               <!-- Kích thước và Trọng lượng (Phục vụ đóng gói & Vận chuyển) -->
-              <div class="row g-3 mb-3 p-3 bg-light rounded-3 border">
-                <div class="col-md-3">
-                  <label class="form-label fw-bold text-secondary small">Trọng lượng (gram)</label>
-                  <input type="number" step="0.1" class="form-control" v-model.number="form.weight" placeholder="VD: 450">
-                </div>
-                <div class="col-md-3">
-                  <label class="form-label fw-bold text-secondary small">Chiều dài (cm)</label>
-                  <input type="number" step="0.1" class="form-control" v-model.number="form.length" placeholder="VD: 20.5">
-                </div>
-                <div class="col-md-3">
-                  <label class="form-label fw-bold text-secondary small">Chiều rộng (cm)</label>
-                  <input type="number" step="0.1" class="form-control" v-model.number="form.width" placeholder="VD: 14.5">
-                </div>
-                <div class="col-md-3">
-                  <label class="form-label fw-bold text-secondary small">Độ dày / cao (cm)</label>
-                  <input type="number" step="0.1" class="form-control" v-model.number="form.height" placeholder="VD: 1.8">
-                </div>
-                <div class="col-12 mt-2">
-                  <small class="text-muted fst-italic">
-                    <i class="bi bi-box-seam me-1"></i> Kích thước đóng gói: 
-                    <strong>{{ (form.length || 0) }} x {{ (form.width || 0) }} x {{ (form.height || 0) }} cm</strong>
-                  </small>
+              <div class="mb-4 p-3 bg-light rounded-3 border">
+                <div class="row g-3">
+                  <div class="col-md-3">
+                    <label class="form-label fw-bold text-secondary small">Trọng lượng (gram)</label>
+                    <input type="number" step="0.1" class="form-control" v-model.number="form.weight" placeholder="VD: 450">
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label fw-bold text-secondary small">Chiều dài (cm)</label>
+                    <input type="number" step="0.1" class="form-control" v-model.number="form.length" placeholder="VD: 20.5">
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label fw-bold text-secondary small">Chiều rộng (cm)</label>
+                    <input type="number" step="0.1" class="form-control" v-model.number="form.width" placeholder="VD: 14.5">
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label fw-bold text-secondary small">Độ dày / cao (cm)</label>
+                    <input type="number" step="0.1" class="form-control" v-model.number="form.height" placeholder="VD: 1.8">
+                  </div>
+                  <div class="col-12 mt-1">
+                    <small class="text-muted fst-italic">
+                      <i class="bi bi-box-seam me-1"></i> Kích thước đóng gói: 
+                      <strong>{{ (form.length || 0) }} x {{ (form.width || 0) }} x {{ (form.height || 0) }} cm</strong>
+                    </small>
+                  </div>
                 </div>
               </div>
 
@@ -134,36 +136,94 @@
             </div>
           </div>
 
-          <!-- KHỐI 3: Tác giả & Dịch giả (Dynamic Array) -->
+          <!-- KHỐI 3: Tác giả & Dịch giả (Tìm kiếm thông minh & Thêm nhanh) -->
           <div class="card border-0 shadow-sm rounded-4 mb-4">
             <div class="card-header bg-white border-bottom-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
-              <h5 class="fw-bold mb-0 text-primary"><i class="bi bi-people me-2"></i>3. Danh sách Tác giả / Dịch giả <span class="text-danger">*</span></h5>
-              <button type="button" class="btn btn-sm btn-outline-primary" @click="addAuthorRow">
-                <i class="bi bi-plus me-1"></i>Thêm tác giả
-              </button>
+              <div>
+                <h5 class="fw-bold mb-0 text-primary"><i class="bi bi-people me-2"></i>3. Danh sách Tác giả / Dịch giả <span class="text-danger">*</span></h5>
+                <small class="text-muted" style="font-size: 11px;">Gõ tên để tìm kiếm nhanh hoặc bấm "+" để tạo mới tác giả ngay tại đây</small>
+              </div>
+              <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-success" @click="openQuickAuthorModal" title="Tạo tác giả mới ngay">
+                  <i class="bi bi-person-plus-fill me-1"></i>Tạo tác giả mới
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-primary" @click="addAuthorRow">
+                  <i class="bi bi-plus me-1"></i>Thêm dòng
+                </button>
+              </div>
             </div>
             <div class="card-body p-4">
               <div v-if="form.authors.length === 0" class="text-center py-3 text-muted small border rounded-3 bg-light">
-                Chưa có tác giả nào. Hãy bấm "Thêm tác giả" ở trên.
+                Chưa có tác giả nào. Hãy bấm "Thêm dòng" ở trên.
               </div>
-              <div v-for="(item, index) in form.authors" :key="index" class="row g-2 align-items-center mb-2">
-                <div class="col-7">
-                  <select class="form-select" v-model="item.author_id" required>
-                    <option value="" disabled>-- Chọn tác giả --</option>
-                    <option v-for="auth in authorsList" :key="auth.author_id" :value="auth.author_id">
-                      {{ auth.author_name }}
-                    </option>
-                  </select>
+              
+              <div v-for="(item, index) in form.authors" :key="index" class="row g-2 align-items-center mb-3 p-2 rounded-3 bg-light border">
+                <!-- Cột Chọn / Tìm kiếm tác giả -->
+                <div class="col-md-7 position-relative">
+                  <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                    <input 
+                      type="text" 
+                      class="form-control border-start-0 shadow-none" 
+                      v-model="item.searchKeyword"
+                      placeholder="Gõ tên tác giả để tìm..."
+                      @focus="item.showDropdown = true"
+                      @input="item.showDropdown = true"
+                    >
+                    <button 
+                      v-if="item.author_id" 
+                      class="btn btn-outline-secondary" 
+                      type="button" 
+                      @click="clearAuthorSelection(item)"
+                      title="Chọn lại"
+                    >
+                      <i class="bi bi-x-circle"></i>
+                    </button>
+                  </div>
+
+                  <!-- Dropdown gợi ý tìm kiếm -->
+                  <div 
+                    v-if="item.showDropdown" 
+                    class="position-absolute bg-white shadow-lg border rounded-3 w-100 mt-1 py-1 overflow-auto" 
+                    style="max-height: 200px; z-index: 1050; top: 100%; left: 0;"
+                  >
+                    <div 
+                      v-for="auth in filterAuthors(item.searchKeyword)" 
+                      :key="auth.author_id"
+                      class="px-3 py-2 cursor-pointer dropdown-item-author border-bottom"
+                      @click="selectAuthor(item, auth)"
+                    >
+                      <div class="fw-bold text-dark">{{ auth.author_name }}</div>
+                      <small class="text-muted text-truncate d-block" style="font-size: 11px;">{{ auth.bio || 'Chưa có tiểu sử' }}</small>
+                    </div>
+                    <div v-if="filterAuthors(item.searchKeyword).length === 0" class="px-3 py-2 text-muted small text-center">
+                      Không tìm thấy "{{ item.searchKeyword }}". 
+                      <a href="#" class="text-primary fw-bold text-decoration-none d-block mt-1" @click.prevent="openQuickAuthorModalWithKeyword(item.searchKeyword)">
+                        + Bấm vào đây để tạo nhanh tác giả này
+                      </a>
+                    </div>
+                  </div>
+
+                  <!-- Hiển thị badge đã chọn -->
+                  <div v-if="item.author_id" class="mt-1">
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle py-1 px-2">
+                      <i class="bi bi-check2-circle me-1"></i>Đã chọn: {{ getAuthorName(item.author_id) }}
+                    </span>
+                  </div>
                 </div>
-                <div class="col-4">
-                  <select class="form-select" v-model="item.role">
+
+                <!-- Cột Chọn vai trò -->
+                <div class="col-md-4">
+                  <select class="form-select shadow-none" v-model="item.role">
                     <option value="author">Tác giả</option>
                     <option value="translator">Dịch giả</option>
                   </select>
                 </div>
-                <div class="col-1 text-end">
+
+                <!-- Nút Xóa dòng -->
+                <div class="col-md-1 text-end">
                   <button type="button" class="btn btn-outline-danger btn-sm p-1" @click="removeAuthorRow(index)" :disabled="form.authors.length <= 1">
-                    <i class="bi bi-x-lg"></i>
+                    <i class="bi bi-trash"></i>
                   </button>
                 </div>
               </div>
@@ -272,6 +332,38 @@
 
       </div>
     </form>
+
+    <!-- Modal Thêm nhanh Tác giả (Popup trực tiếp không cần rời trang) -->
+    <div v-if="showQuickAuthorModal" class="modal-backdrop fade show" style="opacity: 0.5;"></div>
+    <div v-if="showQuickAuthorModal" class="modal fade show d-block" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+          <div class="modal-header border-bottom-0 pb-0">
+            <h5 class="modal-title fw-bold text-success"><i class="bi bi-person-plus me-2"></i>Thêm nhanh Tác giả</h5>
+            <button type="button" class="btn-close" @click="showQuickAuthorModal = false"></button>
+          </div>
+          <div class="modal-body">
+            <div v-if="quickAuthorError" class="alert alert-danger py-2 small">{{ quickAuthorError }}</div>
+            <div class="mb-3">
+              <label class="form-label fw-bold text-secondary small">Tên tác giả <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" v-model="quickAuthorForm.author_name" placeholder="Ví dụ: Haruki Murakami" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold text-secondary small">Tiểu sử ngắn</label>
+              <textarea class="form-control" rows="2" v-model="quickAuthorForm.bio" placeholder="Tóm tắt tiểu sử tác giả..."></textarea>
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+              <button type="button" class="btn btn-light" @click="showQuickAuthorModal = false">Hủy</button>
+              <button type="button" class="btn btn-success px-4" :disabled="isQuickAuthorSaving" @click="handleSaveQuickAuthor">
+                <span v-if="isQuickAuthorSaving" class="spinner-border spinner-border-sm me-2"></span>
+                Tạo và chọn ngay
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -315,9 +407,89 @@ const form = reactive({
   category_id: '',
   publisher_id: null,
   is_active: true,
-  authors: [{ author_id: '', role: 'author' }],
+  authors: [{ author_id: '', role: 'author', searchKeyword: '', showDropdown: false }],
   images: []
 })
+
+// Quick author modal state
+const showQuickAuthorModal = ref(false)
+const isQuickAuthorSaving = ref(false)
+const quickAuthorError = ref('')
+const quickAuthorForm = reactive({ author_name: '', bio: '' })
+
+// Lọc tác giả theo từ khóa
+const filterAuthors = (keyword) => {
+  if (!keyword || !keyword.trim()) return authorsList.value
+  const kw = keyword.toLowerCase().trim()
+  return authorsList.value.filter(a => a.author_name.toLowerCase().includes(kw))
+}
+
+const selectAuthor = (item, auth) => {
+  item.author_id = auth.author_id
+  item.searchKeyword = auth.author_name
+  item.showDropdown = false
+}
+
+const clearAuthorSelection = (item) => {
+  item.author_id = ''
+  item.searchKeyword = ''
+  item.showDropdown = true
+}
+
+const getAuthorName = (id) => {
+  const found = authorsList.value.find(a => a.author_id === id)
+  return found ? found.author_name : ''
+}
+
+const openQuickAuthorModal = () => {
+  quickAuthorForm.author_name = ''
+  quickAuthorForm.bio = ''
+  quickAuthorError.value = ''
+  showQuickAuthorModal.value = true
+}
+
+const openQuickAuthorModalWithKeyword = (keyword) => {
+  quickAuthorForm.author_name = keyword || ''
+  quickAuthorForm.bio = ''
+  quickAuthorError.value = ''
+  showQuickAuthorModal.value = true
+}
+
+const handleSaveQuickAuthor = async () => {
+  if (!quickAuthorForm.author_name.trim()) {
+    quickAuthorError.value = 'Vui lòng nhập tên tác giả'
+    return
+  }
+  try {
+    isQuickAuthorSaving.value = true
+    quickAuthorError.value = ''
+    const newAuthor = await authorService.create({
+      author_name: quickAuthorForm.author_name.trim(),
+      bio: quickAuthorForm.bio
+    })
+    // Thêm vào danh sách tác giả hiện tại
+    authorsList.value.push(newAuthor)
+
+    // Nếu đang đứng ở một dòng tác giả, tự động gán luôn
+    const emptyRow = form.authors.find(a => !a.author_id)
+    if (emptyRow) {
+      selectAuthor(emptyRow, newAuthor)
+    } else {
+      form.authors.push({
+        author_id: newAuthor.author_id,
+        role: 'author',
+        searchKeyword: newAuthor.author_name,
+        showDropdown: false
+      })
+    }
+
+    showQuickAuthorModal.value = false
+  } catch (error) {
+    quickAuthorError.value = error.response?.data?.message || 'Lỗi tạo tác giả: ' + error.message
+  } finally {
+    isQuickAuthorSaving.value = false
+  }
+}
 
 // Tính giá bán thực tế
 const computedCurrentPrice = computed(() => {
@@ -329,7 +501,7 @@ const computedCurrentPrice = computed(() => {
 
 // Tác giả Actions
 const addAuthorRow = () => {
-  form.authors.push({ author_id: '', role: 'author' })
+  form.authors.push({ author_id: '', role: 'author', searchKeyword: '', showDropdown: false })
 }
 
 const removeAuthorRow = (index) => {
@@ -420,7 +592,9 @@ const loadBookDetails = async (id) => {
     if (book.book_authors && book.book_authors.length > 0) {
       form.authors = book.book_authors.map(ba => ({
         author_id: ba.author_id,
-        role: ba.role || 'author'
+        role: ba.role || 'author',
+        searchKeyword: ba.author?.author_name || getAuthorName(ba.author_id),
+        showDropdown: false
       }))
     }
 
@@ -490,5 +664,8 @@ onMounted(async () => {
 }
 .cursor-pointer {
   cursor: pointer;
+}
+.dropdown-item-author:hover {
+  background-color: #f0f4f8;
 }
 </style>
