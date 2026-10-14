@@ -41,11 +41,12 @@
               <div 
                 v-for="(item, index) in form.details" 
                 :key="index" 
-                class="p-3 mb-3 rounded-3 bg-light border position-relative"
+                class="p-3 mb-3 rounded-3 bg-light border"
               >
-                <div class="row g-2 align-items-center">
+                <!-- Hàng điều khiển chính: Tất cả ô nhập và nút xóa thẳng hàng tăm tắp -->
+                <div class="row g-2 align-items-start">
                   <!-- Cột Tìm kiếm & Chọn Sách -->
-                  <div class="col-md-5 position-relative">
+                  <div :class="form.type === 'import' ? 'col-md-5' : 'col-md-7'" class="position-relative">
                     <label class="form-label small fw-bold text-secondary mb-1">Cuốn sách <span class="text-danger">*</span></label>
                     <div class="input-group">
                       <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
@@ -90,17 +91,10 @@
                         Không tìm thấy sách phù hợp
                       </div>
                     </div>
-
-                    <!-- Badge thông tin tồn kho hiện tại -->
-                    <div v-if="item.book_id" class="mt-1">
-                      <span class="badge bg-white text-secondary border py-1 px-2">
-                        <i class="bi bi-box me-1"></i>Tồn kho hiện tại: <strong>{{ item.current_stock }}</strong> cuốn
-                      </span>
-                    </div>
                   </div>
 
                   <!-- Cột Số lượng -->
-                  <div class="col-md-3">
+                  <div :class="form.type === 'import' ? 'col-md-3' : 'col-md-4'">
                     <label class="form-label small fw-bold text-secondary mb-1">Số lượng <span class="text-danger">*</span></label>
                     <input 
                       type="number" 
@@ -110,18 +104,10 @@
                       required 
                       placeholder="Số lượng..."
                     >
-                    <!-- Cảnh báo nếu xuất kho vượt tồn -->
-                    <small 
-                      v-if="form.type === 'export' && item.book_id && item.quantity > item.current_stock" 
-                      class="text-danger d-block mt-1 fw-bold" 
-                      style="font-size: 10px;"
-                    >
-                      <i class="bi bi-exclamation-triangle-fill me-1"></i>Vượt quá tồn kho ({{ item.current_stock }})!
-                    </small>
                   </div>
 
                   <!-- Cột Đơn giá (Chỉ hiện khi nhập kho) -->
-                  <div :class="form.type === 'import' ? 'col-md-3' : 'd-none'">
+                  <div v-if="form.type === 'import'" class="col-md-3">
                     <label class="form-label small fw-bold text-secondary mb-1">Đơn giá nhập (đ) <span class="text-danger">*</span></label>
                     <div class="input-group">
                       <input 
@@ -130,18 +116,19 @@
                         step="1000" 
                         class="form-control shadow-none" 
                         v-model.number="item.unit_cost" 
-                        :required="form.type === 'import'"
+                        required
                         placeholder="0"
                       >
                     </div>
                   </div>
 
                   <!-- Nút Xóa dòng -->
-                  <div :class="form.type === 'import' ? 'col-md-1 text-end' : 'col-md-4 text-end'">
-                    <label class="form-label small d-block">&nbsp;</label>
+                  <div class="col-md-1 text-end">
+                    <label class="form-label small fw-bold text-secondary mb-1 d-block">&nbsp;</label>
                     <button 
                       type="button" 
-                      class="btn btn-outline-danger btn-sm p-2" 
+                      class="btn btn-outline-danger btn-sm p-0 w-100 d-flex align-items-center justify-content-center" 
+                      style="height: 38px;"
                       @click="removeBookRow(index)" 
                       :disabled="form.details.length <= 1"
                       title="Xóa dòng này"
@@ -151,11 +138,22 @@
                   </div>
                 </div>
 
-                <!-- Thành tiền dòng -->
-                <div v-if="form.type === 'import'" class="text-end mt-2 pt-1 border-top">
-                  <small class="text-muted">
-                    Thành tiền: <strong class="text-dark">{{ formatCurrency((item.quantity || 0) * (item.unit_cost || 0)) }}</strong>
-                  </small>
+                <!-- Thanh thông tin phụ: Tồn kho hiện tại & Cảnh báo vượt tồn & Thành tiền -->
+                <div v-if="item.book_id" class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top small">
+                  <div>
+                    <span class="badge bg-white text-secondary border py-1 px-2">
+                      <i class="bi bi-box me-1"></i>Tồn kho hiện tại: <strong class="text-dark">{{ item.current_stock }}</strong> cuốn
+                    </span>
+                    <span 
+                      v-if="form.type === 'export' && item.quantity > item.current_stock" 
+                      class="text-danger fw-bold ms-2"
+                    >
+                      <i class="bi bi-exclamation-triangle-fill me-1"></i>Vượt quá tồn kho (hiện chỉ còn {{ item.current_stock }} cuốn)!
+                    </span>
+                  </div>
+                  <div v-if="form.type === 'import'" class="text-muted">
+                    Thành tiền: <strong class="text-dark fs-6">{{ formatCurrency((item.quantity || 0) * (item.unit_cost || 0)) }}</strong>
+                  </div>
                 </div>
               </div>
             </div>
