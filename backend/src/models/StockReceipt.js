@@ -27,6 +27,10 @@ const StockReceipt = sequelize.define('StockReceipt', {
         type: DataTypes.STRING(500), 
         allowNull: true 
     },
+    cancel_reason: { 
+        type: DataTypes.STRING(500), 
+        allowNull: true 
+    },
     created_date: { 
         type: DataTypes.DATE, 
         allowNull: false, 

@@ -377,7 +377,7 @@ const handleSubmit = async (autoCompleteFlag) => {
   }
 
   if (form.type === 'import' && (!form.supplier_name || !form.supplier_name.trim())) {
-    alertMsg.value = 'Phiếu nhập kho bắt buộc phải nhập thông tin Nhà cung cấp / Đối tác!'
+    alertMsg.value = 'Cần phải nhập thông tin Nhà cung cấp / Đối tác!'
     return
   }
 

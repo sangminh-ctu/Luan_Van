@@ -318,9 +318,7 @@ class InventoryService {
             }
 
             if (reason && reason.trim()) {
-                receipt.note = receipt.note 
-                    ? `${receipt.note} [Lý do hủy: ${reason.trim()}]`
-                    : `[Lý do hủy: ${reason.trim()}]`;
+                receipt.cancel_reason = reason.trim();
             }
 
             receipt.status = 'cancelled';
@@ -349,7 +347,8 @@ class InventoryService {
             where[Op.or] = [
                 { receipt_code: { [Op.iLike]: `%${query.search.trim()}%` } },
                 { supplier_name: { [Op.iLike]: `%${query.search.trim()}%` } },
-                { note: { [Op.iLike]: `%${query.search.trim()}%` } }
+                { note: { [Op.iLike]: `%${query.search.trim()}%` } },
+                { cancel_reason: { [Op.iLike]: `%${query.search.trim()}%` } }
             ];
         }
 
