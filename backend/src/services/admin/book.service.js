@@ -112,7 +112,7 @@ class BookService {
     }
 
     /**
-     * Tạo sách mới kèm Tác giả, Hình ảnh và Khởi tạo Tồn kho = 0 (Transaction an toàn)
+     * Tạo sách mới kèm Tác giả, Hình ảnh và Khởi tạo Tồn kho = 0 
      */
     async createBook(data) {
         const transaction = await sequelize.transaction();

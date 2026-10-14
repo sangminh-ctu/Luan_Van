@@ -194,12 +194,13 @@
 
               <!-- Nhà cung cấp (Chỉ khi Nhập kho) -->
               <div v-if="form.type === 'import'" class="mb-3">
-                <label class="form-label fw-bold text-secondary small">Nhà cung cấp / Đối tác</label>
+                <label class="form-label fw-bold text-secondary small">Nhà cung cấp / Đối tác <span class="text-danger">*</span></label>
                 <input 
                   type="text" 
                   class="form-control shadow-none" 
                   v-model="form.supplier_name" 
                   placeholder="VD: NXB Trẻ, Công ty Fahasa..."
+                  required
                 >
               </div>
 
@@ -373,6 +374,11 @@ const handleSubmit = async (autoCompleteFlag) => {
       alertMsg.value = `Sách "${item.searchKeyword}" không đủ số lượng trong kho để xuất (tồn: ${item.current_stock}, yêu cầu: ${item.quantity})!`
       return
     }
+  }
+
+  if (form.type === 'import' && (!form.supplier_name || !form.supplier_name.trim())) {
+    alertMsg.value = 'Phiếu nhập kho bắt buộc phải nhập thông tin Nhà cung cấp / Đối tác!'
+    return
   }
 
   if (form.type === 'export' && (!form.note || !form.note.trim())) {

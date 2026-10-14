@@ -109,6 +109,13 @@ class InventoryService {
             throw err;
         }
 
+        // Với phiếu nhập, bắt buộc có thông tin Nhà cung cấp / Đối tác
+        if (type === 'import' && (!supplier_name || !supplier_name.trim())) {
+            const err = new Error('Phiếu nhập kho bắt buộc phải nhập Nhà cung cấp / Đối tác');
+            err.status = 400;
+            throw err;
+        }
+
         // Với phiếu xuất, bắt buộc có ghi chú lý do xuất
         if (type === 'export' && (!note || !note.trim())) {
             const err = new Error('Phiếu xuất kho bắt buộc phải nhập lý do vào ô Ghi chú');
