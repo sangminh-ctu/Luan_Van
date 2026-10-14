@@ -222,7 +222,7 @@
                   </div>
                 </div>
 
-                <!-- Hiển thị badge xác nhận đã chọn bên dưới (không làm lệch trục 3 ô trên) -->
+                <!-- Hiển thị badge xác nhận đã chọn bên dưới -->
                 <div v-if="item.author_id" class="mt-2 pt-1 border-top">
                   <small class="text-success fw-bold">
                     <i class="bi bi-check-circle-fill me-1"></i>Đã chọn thành công: {{ getAuthorName(item.author_id) }}

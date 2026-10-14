@@ -1,0 +1,61 @@
+@baseUrl = http://localhost:5000/api
+# Thay chuỗi <token_admin> bằng token Admin của bạn
+@adminToken = <token_admin>
+
+### 1. BÁO CÁO TỒN KHO & THỐNG KÊ KHO
+GET {{baseUrl}}/admin/inventory?page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+### 2. LỌC SÁCH SẮP HẾT HÀNG (1 <= stock <= 5)
+GET {{baseUrl}}/admin/inventory?stock_status=low_stock
+Authorization: Bearer {{adminToken}}
+
+### 3. LỌC SÁCH ĐÃ HẾT HÀNG (stock = 0)
+GET {{baseUrl}}/admin/inventory?stock_status=out_of_stock
+Authorization: Bearer {{adminToken}}
+
+### 4. LẤY DANH SÁCH PHIẾU NHẬP / XUẤT KHO
+GET {{baseUrl}}/admin/stock-receipts?page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+### 5. TẠO PHIẾU NHẬP KHO (Chờ duyệt - Pending)
+POST {{baseUrl}}/admin/stock-receipts
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "type": "import",
+  "supplier_name": "Nhà Xuất Bản Trẻ",
+  "note": "Nhập kho đợt 1 tháng 10",
+  "details": [
+    { "book_id": 1, "quantity": 100, "unit_cost": 45000 }
+  ],
+  "auto_complete": false
+}
+
+### 6. DUYỆT HOÀN TẤT PHIẾU (Tự động cộng tồn kho)
+PATCH {{baseUrl}}/admin/stock-receipts/1/complete
+Authorization: Bearer {{adminToken}}
+
+### 7. TẠO & HOÀN TẤT PHIẾU XUẤT KHO NGAY (Xuất trả / Hủy sách lỗi)
+POST {{baseUrl}}/admin/stock-receipts
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "type": "export",
+  "note": "Xuất trả nhà cung cấp 5 cuốn bị lỗi in ấn",
+  "details": [
+    { "book_id": 1, "quantity": 5, "unit_cost": 0 }
+  ],
+  "auto_complete": true
+}
+
+### 8. HỦY PHIẾU CHỜ DUYỆT (Chỉ áp dụng với phiếu Pending)
+PATCH {{baseUrl}}/admin/stock-receipts/1/cancel
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "reason": "Nhà cung cấp giao nhầm đợt hàng"
+}

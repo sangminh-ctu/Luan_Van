@@ -13,6 +13,9 @@ import BookFormView from '@/views/admin/BookFormView.vue'
 import CategoryView from '@/views/admin/CategoryView.vue'
 import AuthorView from '@/views/admin/AuthorView.vue'
 import PublisherView from '@/views/admin/PublisherView.vue'
+import InventoryView from '@/views/admin/InventoryView.vue'
+import StockReceiptListView from '@/views/admin/StockReceiptListView.vue'
+import StockReceiptFormView from '@/views/admin/StockReceiptFormView.vue'
 import AuthView from '@/views/auth/AuthView.vue'
 import AdminLoginView from '@/views/auth/AdminLoginView.vue'
 
@@ -46,8 +49,9 @@ const router = createRouter({
         { path: 'categories', name: 'admin-categories', component: CategoryView },
         { path: 'authors', name: 'admin-authors', component: AuthorView },
         { path: 'publishers', name: 'admin-publishers', component: PublisherView },
-        { path: 'inventory', name: 'admin-inventory', component: DashboardView },
-        { path: 'stock-receipts', name: 'admin-stock-receipts', component: DashboardView },
+        { path: 'inventory', name: 'admin-inventory', component: InventoryView },
+        { path: 'stock-receipts', name: 'admin-stock-receipts', component: StockReceiptListView },
+        { path: 'stock-receipts/create', name: 'admin-stock-receipts-create', component: StockReceiptFormView },
         { path: 'orders', name: 'admin-orders', component: DashboardView },
         { path: 'shipments', name: 'admin-shipments', component: DashboardView },
         { path: 'users', name: 'admin-users', component: DashboardView },

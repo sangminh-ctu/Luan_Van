@@ -36,3 +36,12 @@ export const bookService = {
         }).then(res => res.data);
     }
 };
+
+export const inventoryService = {
+    getInventory: (params) => api.get('/admin/inventory', { params }).then(res => res.data),
+    getReceipts: (params) => api.get('/admin/stock-receipts', { params }).then(res => res.data),
+    getReceiptById: (id) => api.get(`/admin/stock-receipts/${id}`).then(res => res.data),
+    createReceipt: (data) => api.post('/admin/stock-receipts', data).then(res => res.data),
+    completeReceipt: (id) => api.patch(`/admin/stock-receipts/${id}/complete`).then(res => res.data),
+    cancelReceipt: (id, reason) => api.patch(`/admin/stock-receipts/${id}/cancel`, { reason }).then(res => res.data)
+};

@@ -29,6 +29,7 @@ app.use('/api/admin/categories', verifyToken, requireAdmin, require('./routes/ad
 app.use('/api/admin/authors', verifyToken, requireAdmin, require('./routes/admin/author.routes'));
 app.use('/api/admin/publishers', verifyToken, requireAdmin, require('./routes/admin/publisher.routes'));
 app.use('/api/admin/books', verifyToken, requireAdmin, require('./routes/admin/book.routes'));
+app.use('/api/admin', verifyToken, requireAdmin, require('./routes/admin/inventory.routes'));
 
 // Global Error Handler
 app.use((err, req, res, next) => {

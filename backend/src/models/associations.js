@@ -5,6 +5,8 @@ const Publisher = require('./Publisher');
 const BookAuthor = require('./BookAuthor');
 const BookImage = require('./BookImage');
 const Inventory = require('./Inventory');
+const StockReceipt = require('./StockReceipt');
+const StockReceiptDetail = require('./StockReceiptDetail');
 
 // 1. Sách - Thể loại (N - 1)
 Category.hasMany(Book, { foreignKey: 'category_id', as: 'books' });
@@ -43,6 +45,14 @@ BookImage.belongsTo(Book, { foreignKey: 'book_id', as: 'book' });
 Book.hasOne(Inventory, { foreignKey: 'book_id', as: 'inventory' });
 Inventory.belongsTo(Book, { foreignKey: 'book_id', as: 'book' });
 
+// 6. Phiếu nhập/xuất - Chi tiết phiếu (1 - N)
+StockReceipt.hasMany(StockReceiptDetail, { foreignKey: 'receipt_id', as: 'details' });
+StockReceiptDetail.belongsTo(StockReceipt, { foreignKey: 'receipt_id', as: 'receipt' });
+
+// 7. Sách - Chi tiết phiếu nhập/xuất (1 - N)
+Book.hasMany(StockReceiptDetail, { foreignKey: 'book_id', as: 'stock_receipt_details' });
+StockReceiptDetail.belongsTo(Book, { foreignKey: 'book_id', as: 'book' });
+
 module.exports = { 
     Book, 
     Category, 
@@ -50,5 +60,7 @@ module.exports = {
     Publisher, 
     BookAuthor, 
     BookImage, 
-    Inventory 
+    Inventory,
+    StockReceipt,
+    StockReceiptDetail
 };
