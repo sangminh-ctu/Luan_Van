@@ -44,36 +44,29 @@
         </nav>
 
         <!-- 2. BỐ CỤC CHÍNH 2 CỘT -->
-        <div class="row g-4 mb-4">
+        <div class="row g-3 mb-3">
           
           <!-- CỘT TRÁI (COL-LG-5): BỘ SƯU TẬP ẢNH, NÚT MUA, CHÍNH SÁCH -->
           <div class="col-lg-5">
-            <div class="bg-white rounded-4 shadow-sm p-4 sticky-top" style="top: 85px; z-index: 10;">
+            <div class="bg-white rounded-3 shadow-sm p-4 sticky-top" style="top: 85px; z-index: 10;">
               
               <!-- Khung Ảnh Lớn Chính -->
-              <div class="position-relative text-center p-3 mb-3 bg-light rounded-3 d-flex align-items-center justify-content-center" style="min-height: 380px;">
-                <span 
-                  v-if="book.discount_percent > 0" 
-                  class="position-absolute top-0 start-0 m-3 badge bg-danger fs-6 shadow-sm"
-                >
-                  -{{ Math.round(book.discount_percent) }}%
-                </span>
-
+              <div class="text-center p-2 mb-3 d-flex align-items-center justify-content-center" style="min-height: 380px;">
                 <img 
                   :src="currentImageUrl" 
                   :alt="book.title"
-                  class="img-fluid rounded shadow-sm main-book-image"
-                  style="max-height: 360px; object-fit: contain;"
+                  class="img-fluid rounded main-book-image"
+                  style="max-height: 380px; object-fit: contain;"
                 >
               </div>
 
               <!-- Dải ảnh Thumbnails -->
-              <div class="d-flex gap-2 overflow-auto pb-2 mb-4 scrollbar-none align-items-center" v-if="galleryImages.length > 1">
+              <div class="d-flex gap-2 overflow-auto pb-2 mb-3 scrollbar-none align-items-center" v-if="galleryImages.length > 1">
                 <div 
                   v-for="(img, idx) in galleryImages" 
                   :key="img.image_id || idx"
                   class="rounded border p-1 cursor-pointer transition-all bg-white flex-shrink-0"
-                  :class="selectedImageIndex === idx ? 'border-danger border-2 shadow-sm' : 'border-light-subtle opacity-75'"
+                  :class="selectedImageIndex === idx ? 'border-danger border-2' : 'border-light-subtle opacity-75'"
                   style="width: 64px; height: 84px;"
                   @click="selectedImageIndex = idx"
                   @mouseenter="selectedImageIndex = idx"
@@ -87,28 +80,35 @@
                 </div>
               </div>
 
-              <!-- Hàng Nút Hành Động (Thêm giỏ hàng + Mua ngay) -->
-              <div class="row g-2 mb-4">
+              <!-- Hàng Nút Hành Động (Thêm giỏ hàng + Mua ngay / Tạm hết hàng) -->
+              <div v-if="!isOutOfStock" class="row g-2 mb-4">
                 <div class="col-6">
                   <button 
-                    class="btn btn-outline-danger w-100 py-2 fw-bold d-flex align-items-center justify-content-center h-100"
-                    :disabled="isOutOfStock || isAddingCart"
+                    class="btn btn-outline-danger w-100 py-2 fw-bold rounded-2 d-flex align-items-center justify-content-center h-100"
+                    :disabled="isAddingCart"
                     @click="handleAddToCart"
                   >
-                    <i class="bi bi-cart-plus fs-5 me-2"></i>
-                    <span>Thêm vào giỏ</span>
+                    <i class="bi bi-cart3 fs-5 me-2"></i>
+                    <span>Thêm vào giỏ hàng</span>
                   </button>
                 </div>
                 <div class="col-6">
                   <button 
-                    class="btn btn-danger w-100 py-2 fw-bold d-flex align-items-center justify-content-center h-100 shadow-sm"
-                    :disabled="isOutOfStock || isAddingCart"
+                    class="btn btn-danger w-100 py-2 fw-bold rounded-2 d-flex align-items-center justify-content-center h-100"
+                    :disabled="isAddingCart"
                     @click="handleBuyNow"
                   >
-                    <i class="bi bi-lightning-charge-fill me-1" v-if="!isOutOfStock"></i>
-                    <span>{{ isOutOfStock ? 'Hết hàng' : 'Mua ngay' }}</span>
+                    <span>Mua ngay</span>
                   </button>
                 </div>
+              </div>
+              <div v-else class="mb-4">
+                <button 
+                  class="btn btn-secondary w-100 py-2 fw-bold rounded-2"
+                  disabled
+                >
+                  Tạm hết hàng
+                </button>
               </div>
 
               <!-- Chính Sách Ưu Đãi Của BookStore (Hình 1 & 2) -->
@@ -118,23 +118,23 @@
                   <div class="d-flex align-items-center justify-content-between text-secondary py-1 cursor-pointer">
                     <div class="d-flex align-items-center">
                       <i class="bi bi-truck text-danger fs-5 me-3"></i>
-                      <span><strong>Thời gian giao hàng:</strong> Giao nhanh và uy tín</span>
+                      <span><strong class="text-dark">Thời gian giao hàng:</strong> Giao nhanh và uy tín</span>
                     </div>
                     <i class="bi bi-chevron-right text-muted small"></i>
                   </div>
 
                   <div class="d-flex align-items-center justify-content-between text-secondary py-1 cursor-pointer">
                     <div class="d-flex align-items-center">
-                      <i class="bi bi-arrow-repeat text-danger fs-5 me-3"></i>
-                      <span><strong>Chính sách đổi trả:</strong> Đổi trả miễn phí toàn quốc</span>
+                      <i class="bi bi-box-seam text-danger fs-5 me-3"></i>
+                      <span><strong class="text-dark">Chính sách đổi trả:</strong> Đổi trả miễn phí toàn quốc</span>
                     </div>
                     <i class="bi bi-chevron-right text-muted small"></i>
                   </div>
 
                   <div class="d-flex align-items-center justify-content-between text-secondary py-1 cursor-pointer">
                     <div class="d-flex align-items-center">
-                      <i class="bi bi-building text-danger fs-5 me-3"></i>
-                      <span><strong>Chính sách khách sỉ:</strong> Ưu đãi khi mua số lượng lớn</span>
+                      <i class="bi bi-shop text-danger fs-5 me-3"></i>
+                      <span><strong class="text-dark">Chính sách khách sỉ:</strong> Ưu đãi khi mua số lượng lớn</span>
                     </div>
                     <i class="bi bi-chevron-right text-muted small"></i>
                   </div>
@@ -148,26 +148,19 @@
           <div class="col-lg-7">
             
             <!-- 1. THẺ THÔNG TIN CƠ BẢN & GIÁ BÁN & SỐ LƯỢNG -->
-            <div class="bg-white rounded-4 shadow-sm p-4 mb-4">
+            <div class="bg-white rounded-3 shadow-sm p-4 mb-3">
               
-              <!-- Huy hiệu thể loại -->
-              <div class="mb-2" v-if="book.category">
-                <span class="badge bg-light text-secondary border px-2 py-1">
-                  {{ book.category.category_name }}
-                </span>
-              </div>
-
               <!-- Tiêu đề Sách -->
-              <h3 class="fw-bold text-dark mb-3" style="line-height: 1.4;">
+              <h4 class="fw-semibold text-dark mb-3" style="line-height: 1.4;">
                 {{ book.title }}
-              </h3>
+              </h4>
 
               <!-- Thông tin nhanh 2 cột (Hình 1) -->
-              <div class="row g-2 small text-secondary mb-3">
+              <div class="row g-2 small text-secondary mb-2">
                 <div class="col-sm-6">
                   <div class="mb-1">
                     Nhà cung cấp: 
-                    <strong class="text-primary">{{ book.publisher?.publisher_name || 'Đang cập nhật' }}</strong>
+                    <strong class="text-primary fw-semibold">{{ book.publisher?.publisher_name || 'Đang cập nhật' }}</strong>
                   </div>
                   <div>
                     Nhà xuất bản: 
@@ -177,7 +170,7 @@
                 <div class="col-sm-6">
                   <div class="mb-1">
                     Tác giả: 
-                    <strong class="text-primary">{{ authorNames }}</strong>
+                    <strong class="text-dark">{{ authorNames }}</strong>
                   </div>
                   <div>
                     Hình thức bìa: 
@@ -187,110 +180,105 @@
               </div>
 
               <!-- Đánh giá sao -->
-              <div class="d-flex align-items-center small gap-2 pb-3 border-bottom mb-3">
-                <div class="text-warning">
+              <div class="d-flex align-items-center small gap-2 mb-3">
+                <div class="text-warning" style="font-size: 13px;">
                   <i class="bi bi-star"></i>
                   <i class="bi bi-star"></i>
                   <i class="bi bi-star"></i>
                   <i class="bi bi-star"></i>
                   <i class="bi bi-star"></i>
                 </div>
-                <span class="text-muted">(0 đánh giá)</span>
+                <span class="text-warning small">(0 đánh giá)</span>
               </div>
 
-              <!-- Khối Giá Bán (Fahasa Red Theme) -->
-              <div class="bg-light p-3 rounded-3 mb-3">
-                <div class="d-flex align-items-baseline gap-3">
+              <!-- Khối Giá Bán -->
+              <div class="mb-3">
+                <div class="d-flex align-items-center gap-3">
                   <span class="text-danger fw-bold fs-2">{{ formatCurrency(book.final_price) }}</span>
-                  <span v-if="book.discount_percent > 0" class="text-muted text-decoration-line-through fs-5">
+                  <span v-if="book.discount_percent > 0" class="text-muted text-decoration-line-through">
                     {{ formatCurrency(book.price) }}
                   </span>
-                  <span v-if="book.discount_percent > 0" class="badge bg-danger fs-6">
+                  <span v-if="book.discount_percent > 0" class="badge bg-danger">
                     -{{ Math.round(book.discount_percent) }}%
                   </span>
                 </div>
-                <div class="small text-danger mt-1 d-flex align-items-center">
-                  <i class="bi bi-tag-fill me-1"></i>
-                  <span>Chính sách khuyến mãi trên chỉ áp dụng tại BookStore</span>
+                <div class="small text-danger mt-1">
+                  Chính sách khuyến mãi trên chỉ áp dụng tại hệ thống BookStore <i class="bi bi-chevron-right" style="font-size: 11px;"></i>
                 </div>
               </div>
 
-              <!-- Tình trạng tồn kho thực tế -->
-              <div class="mb-3">
-                <span v-if="!isOutOfStock" class="badge bg-success-subtle text-success border border-success px-3 py-2 rounded-pill">
-                  <i class="bi bi-check-circle-fill me-1"></i> Còn hàng ({{ stockQuantity }} cuốn trong kho)
-                </span>
-                <span v-else class="badge bg-danger-subtle text-danger border border-danger px-3 py-2 rounded-pill">
-                  <i class="bi bi-x-circle-fill me-1"></i> Tạm hết hàng
-                </span>
+              <!-- Tình trạng tồn kho thực tế (Thanh thông báo phẳng giống Fahasa) -->
+              <div 
+                v-if="!isOutOfStock" 
+                class="py-2 px-3 rounded-2 small fw-semibold mb-3"
+                style="background-color: #e8f3ff; color: #2489f4;"
+              >
+                Còn hàng ({{ stockQuantity }} sản phẩm có sẵn)
+              </div>
+              <div 
+                v-else 
+                class="py-2 px-3 rounded-2 small fw-semibold mb-1"
+                style="background-color: #fce8e6; color: #c92127;"
+              >
+                Sản phẩm tạm hết hàng
               </div>
 
-              <!-- Bộ chọn số lượng (Quantity Selector) -->
-              <div class="d-flex align-items-center pt-3 border-top">
-                <label class="fw-bold text-dark me-4 mb-0">Số lượng:</label>
-                <div class="input-group" style="width: 130px;">
+              <!-- Bộ chọn số lượng (Chỉ hiển thị khi còn hàng) -->
+              <div v-if="!isOutOfStock" class="d-flex align-items-center pt-3 border-top">
+                <label class="fw-semibold text-secondary me-4 mb-0" style="min-width: 80px;">Số lượng:</label>
+                <div class="input-group" style="width: 124px;">
                   <button 
-                    class="btn btn-outline-secondary px-2 d-flex align-items-center justify-content-center" 
-                    style="width: 38px; height: 38px;"
+                    class="btn btn-outline-secondary px-2 d-flex align-items-center justify-content-center border-secondary-subtle text-dark" 
+                    style="width: 36px; height: 34px;"
                     type="button"
-                    :disabled="quantity <= 1 || isOutOfStock"
+                    :disabled="quantity <= 1"
                     @click="decreaseQuantity"
                   >
-                    <i class="bi bi-dash fs-6"></i>
+                    <i class="bi bi-dash"></i>
                   </button>
                   <input 
                     type="number" 
-                    class="form-control text-center fw-bold px-1 no-spinners" 
-                    style="height: 38px;"
+                    class="form-control text-center fw-bold px-1 border-secondary-subtle no-spinners" 
+                    style="height: 34px;"
                     v-model.number="quantity"
                     :min="1"
                     :max="stockQuantity"
-                    :disabled="isOutOfStock"
                     @change="validateQuantity"
                   >
                   <button 
-                    class="btn btn-outline-secondary px-2 d-flex align-items-center justify-content-center" 
-                    style="width: 38px; height: 38px;"
+                    class="btn btn-outline-secondary px-2 d-flex align-items-center justify-content-center border-secondary-subtle text-dark" 
+                    style="width: 36px; height: 34px;"
                     type="button"
-                    :disabled="quantity >= stockQuantity || isOutOfStock"
+                    :disabled="quantity >= stockQuantity"
                     @click="increaseQuantity"
                   >
-                    <i class="bi bi-plus fs-6"></i>
+                    <i class="bi bi-plus"></i>
                   </button>
                 </div>
-                <span class="text-muted small ms-3" v-if="!isOutOfStock">
-                  Tối đa {{ stockQuantity }} cuốn
-                </span>
-              </div>
-
-              <!-- Cảnh báo số lượng đã có trong giỏ hàng -->
-              <div v-if="currentInCart > 0" class="small mt-2 p-2 rounded bg-light border-start border-3" :class="currentInCart >= stockQuantity ? 'border-danger text-danger' : 'border-primary text-secondary'">
-                <i class="bi me-1" :class="currentInCart >= stockQuantity ? 'bi-exclamation-triangle-fill text-danger' : 'bi-info-circle-fill text-primary'"></i>
-                <span>Bạn đã có <strong>{{ currentInCart }}</strong> cuốn trong giỏ hàng.</span>
-                <span v-if="currentInCart >= stockQuantity" class="fw-semibold ms-1">
-                  (Đã đạt tối đa số lượng tồn kho)
+                <span v-if="currentInCart > 0" class="small text-muted ms-3">
+                  (Đã có {{ currentInCart }} trong giỏ)
                 </span>
               </div>
 
             </div>
 
             <!-- 2. THẺ THÔNG TIN CHI TIẾT (Specs Table - Hình 1 & 2) -->
-            <div class="bg-white rounded-4 shadow-sm p-4 mb-4">
-              <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">Thông tin chi tiết</h5>
+            <div class="bg-white rounded-3 shadow-sm p-4 mb-3">
+              <h6 class="fw-bold text-dark mb-3">Thông tin chi tiết</h6>
               <div class="table-responsive">
-                <table class="table table-borderless table-sm mb-0">
+                <table class="table table-borderless table-sm mb-0 small">
                   <tbody>
                     <tr class="border-bottom">
                       <td class="text-secondary py-2" style="width: 35%;">Mã hàng</td>
-                      <td class="text-dark fw-semibold py-2">{{ book.isbn || ('BK' + book.book_id.toString().padStart(6, '0')) }}</td>
+                      <td class="text-dark py-2">{{ book.isbn || ('BK' + book.book_id.toString().padStart(6, '0')) }}</td>
                     </tr>
                     <tr class="border-bottom">
                       <td class="text-secondary py-2">Tên Nhà Cung Cấp</td>
-                      <td class="text-primary fw-semibold py-2">{{ book.publisher?.publisher_name || 'Đang cập nhật' }}</td>
+                      <td class="text-primary py-2">{{ book.publisher?.publisher_name || 'Đang cập nhật' }}</td>
                     </tr>
                     <tr class="border-bottom">
                       <td class="text-secondary py-2">Tác giả</td>
-                      <td class="text-dark fw-semibold py-2">{{ authorNames }}</td>
+                      <td class="text-dark py-2">{{ authorNames }}</td>
                     </tr>
                     <tr class="border-bottom">
                       <td class="text-secondary py-2">Người Dịch</td>
@@ -298,7 +286,7 @@
                     </tr>
                     <tr class="border-bottom">
                       <td class="text-secondary py-2">NXB</td>
-                      <td class="text-dark fw-semibold py-2">{{ book.publisher?.publisher_name || 'Đang cập nhật' }}</td>
+                      <td class="text-dark py-2">{{ book.publisher?.publisher_name || 'Đang cập nhật' }}</td>
                     </tr>
                     <tr class="border-bottom">
                       <td class="text-secondary py-2">Năm XB</td>
@@ -310,7 +298,7 @@
                     </tr>
                     <tr class="border-bottom">
                       <td class="text-secondary py-2">Trọng lượng (gr)</td>
-                      <td class="text-dark py-2">{{ book.weight ? `${book.weight} gr` : 'Đang cập nhật' }}</td>
+                      <td class="text-dark py-2">{{ book.weight ? `${book.weight}` : 'Đang cập nhật' }}</td>
                     </tr>
                     <tr class="border-bottom">
                       <td class="text-secondary py-2">Kích Thước Bao Bì</td>
@@ -318,7 +306,7 @@
                     </tr>
                     <tr class="border-bottom">
                       <td class="text-secondary py-2">Số trang</td>
-                      <td class="text-dark py-2">{{ book.page_count ? `${book.page_count} trang` : 'Đang cập nhật' }}</td>
+                      <td class="text-dark py-2">{{ book.page_count || 'Đang cập nhật' }}</td>
                     </tr>
                     <tr>
                       <td class="text-secondary py-2">Hình thức</td>
@@ -330,14 +318,14 @@
             </div>
 
             <!-- 3. THẺ MÔ TẢ SẢN PHẨM (Description - Hình 2) -->
-            <div class="bg-white rounded-4 shadow-sm p-4 mb-4">
-              <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">Mô tả sản phẩm</h5>
-              <h6 class="fw-bold text-dark text-uppercase mb-3">{{ book.title }}</h6>
+            <div class="bg-white rounded-3 shadow-sm p-4 mb-3">
+              <h6 class="fw-bold text-dark mb-3">Mô tả sản phẩm</h6>
+              <div class="fw-bold text-dark text-uppercase mb-2 small">{{ book.title }}</div>
               
               <div 
-                class="book-description-content text-secondary position-relative overflow-hidden transition-all"
-                :style="{ maxHeight: isExpandedDesc ? 'none' : '260px' }"
-                style="line-height: 1.8; white-space: pre-line;"
+                class="book-description-content text-secondary small position-relative overflow-hidden transition-all"
+                :style="{ maxHeight: isExpandedDesc ? 'none' : '220px' }"
+                style="line-height: 1.7; white-space: pre-line;"
               >
                 {{ book.description || defaultDescription }}
 
@@ -345,18 +333,17 @@
                 <div 
                   v-if="!isExpandedDesc" 
                   class="position-absolute bottom-0 start-0 w-100" 
-                  style="height: 80px; background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,1));"
+                  style="height: 60px; background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,1));"
                 ></div>
               </div>
 
               <!-- Nút Xem thêm / Thu gọn -->
-              <div class="text-center mt-3">
+              <div class="text-center mt-2">
                 <button 
-                  class="btn btn-outline-danger btn-sm px-4 rounded-pill fw-semibold" 
+                  class="btn btn-link text-primary text-decoration-none small p-0" 
                   @click="isExpandedDesc = !isExpandedDesc"
                 >
                   {{ isExpandedDesc ? 'Thu gọn' : 'Xem thêm' }}
-                  <i class="bi ms-1" :class="isExpandedDesc ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
                 </button>
               </div>
             </div>
@@ -365,55 +352,49 @@
         </div>
 
         <!-- 3. KHỐI ĐÁNH GIÁ SẢN PHẨM (Hình 3 & 4 - Giao diện sẵn sàng để sau này làm) -->
-        <div class="bg-white rounded-4 shadow-sm p-4 mb-4">
-          <h5 class="fw-bold text-dark mb-4">Đánh giá sản phẩm</h5>
+        <div class="bg-white rounded-3 shadow-sm p-4 mb-3">
+          <h6 class="fw-bold text-dark mb-3">Đánh giá sản phẩm</h6>
           
-          <div class="row align-items-center g-4 pb-4 border-bottom">
+          <div class="row align-items-center g-4">
             <!-- Điểm tổng kết -->
-            <div class="col-md-3 text-center border-end-md">
-              <div class="display-3 fw-bold text-dark mb-1">0<span class="fs-4 text-muted">/5</span></div>
-              <div class="text-warning fs-5 mb-1">
-                <i class="bi bi-star"></i>
-                <i class="bi bi-star"></i>
-                <i class="bi bi-star"></i>
-                <i class="bi bi-star"></i>
-                <i class="bi bi-star"></i>
+            <div class="col-md-2 text-center">
+              <div class="display-5 fw-normal text-dark mb-0">0<span class="fs-4 text-dark">/5</span></div>
+              <div class="text-secondary opacity-50 mb-1" style="font-size: 14px;">
+                <i class="bi bi-star-fill me-1"></i>
+                <i class="bi bi-star-fill me-1"></i>
+                <i class="bi bi-star-fill me-1"></i>
+                <i class="bi bi-star-fill me-1"></i>
+                <i class="bi bi-star-fill"></i>
               </div>
               <div class="text-muted small">(0 đánh giá)</div>
             </div>
 
             <!-- Các mức sao -->
-            <div class="col-md-6 px-lg-4">
-              <div class="d-flex align-items-center mb-2 small" v-for="star in [5, 4, 3, 2, 1]" :key="star">
-                <span class="text-secondary" style="width: 50px;">{{ star }} sao</span>
-                <div class="progress flex-grow-1 mx-2" style="height: 8px;">
-                  <div class="progress-bar bg-danger" role="progressbar" style="width: 0%"></div>
+            <div class="col-md-4">
+              <div class="d-flex align-items-center mb-1 small" v-for="star in [5, 4, 3, 2, 1]" :key="star">
+                <span class="text-secondary" style="width: 45px; font-size: 12px;">{{ star }} sao</span>
+                <div class="progress flex-grow-1 mx-2" style="height: 4px; background-color: #f0f0f0;">
+                  <div class="progress-bar bg-warning" role="progressbar" style="width: 0%"></div>
                 </div>
-                <span class="text-muted" style="width: 35px; text-align: right;">0%</span>
+                <span class="text-secondary" style="width: 30px; text-align: right; font-size: 12px;">0%</span>
               </div>
             </div>
 
             <!-- Nút Viết đánh giá -->
-            <div class="col-md-3 text-center">
+            <div class="col-md-6 text-center">
               <button 
-                class="btn btn-outline-danger px-4 py-2 fw-semibold rounded-3 shadow-sm"
+                class="btn btn-outline-danger px-5 py-2 fw-semibold rounded-2"
+                style="min-width: 240px;"
                 @click="openReviewModal"
               >
-                <i class="bi bi-pencil-square me-2"></i> Viết đánh giá
+                <i class="bi bi-pencil me-2"></i> Viết đánh giá
               </button>
             </div>
-          </div>
-
-          <!-- Trạng thái trống (Empty State) -->
-          <div class="text-center py-5">
-            <i class="bi bi-chat-heart text-secondary opacity-50 display-4 mb-3 d-block"></i>
-            <h6 class="fw-bold text-dark mb-1">Chưa có đánh giá nào cho sản phẩm này</h6>
-            <p class="text-muted small mb-0">Hãy mua hàng và trở thành người đầu tiên chia sẻ cảm nhận về cuốn sách này nhé!</p>
           </div>
         </div>
 
         <!-- 4. KHỐI FAHASA GIỚI THIỆU (Carousel chuẩn theo ảnh) -->
-        <div class="bg-white rounded-4 shadow-sm p-4 mb-5 position-relative" v-if="relatedBooks.length > 0">
+        <div class="bg-white rounded-3 shadow-sm p-4 mb-5 position-relative" v-if="relatedBooks.length > 0">
           <h5 class="fw-bold text-dark text-uppercase mb-4">FAHASA GIỚI THIỆU</h5>
 
           <!-- Nút cuộn trái -->
