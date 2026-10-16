@@ -230,18 +230,20 @@
               <!-- Bộ chọn số lượng (Quantity Selector) -->
               <div class="d-flex align-items-center pt-3 border-top">
                 <label class="fw-bold text-dark me-4 mb-0">Số lượng:</label>
-                <div class="input-group" style="width: 140px;">
+                <div class="input-group" style="width: 130px;">
                   <button 
-                    class="btn btn-outline-secondary px-3" 
+                    class="btn btn-outline-secondary px-2 d-flex align-items-center justify-content-center" 
+                    style="width: 38px; height: 38px;"
                     type="button"
                     :disabled="quantity <= 1 || isOutOfStock"
                     @click="decreaseQuantity"
                   >
-                    <i class="bi bi-dash"></i>
+                    <i class="bi bi-dash fs-6"></i>
                   </button>
                   <input 
                     type="number" 
-                    class="form-control text-center fw-bold" 
+                    class="form-control text-center fw-bold px-1 no-spinners" 
+                    style="height: 38px;"
                     v-model.number="quantity"
                     :min="1"
                     :max="stockQuantity"
@@ -249,12 +251,13 @@
                     @change="validateQuantity"
                   >
                   <button 
-                    class="btn btn-outline-secondary px-3" 
+                    class="btn btn-outline-secondary px-2 d-flex align-items-center justify-content-center" 
+                    style="width: 38px; height: 38px;"
                     type="button"
                     :disabled="quantity >= stockQuantity || isOutOfStock"
                     @click="increaseQuantity"
                   >
-                    <i class="bi bi-plus"></i>
+                    <i class="bi bi-plus fs-6"></i>
                   </button>
                 </div>
                 <span class="text-muted small ms-3" v-if="!isOutOfStock">
@@ -889,6 +892,16 @@ onMounted(() => {
 
 .main-book-image:hover {
   transform: scale(1.02);
+}
+
+.no-spinners::-webkit-inner-spin-button,
+.no-spinners::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.no-spinners {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 @media (min-width: 768px) {
