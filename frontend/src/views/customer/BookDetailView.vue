@@ -150,13 +150,10 @@
             <!-- 1. THẺ THÔNG TIN CƠ BẢN & GIÁ BÁN & SỐ LƯỢNG -->
             <div class="bg-white rounded-4 shadow-sm p-4 mb-4">
               
-              <!-- Huy hiệu nhãn -->
-              <div class="mb-2">
-                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 fw-semibold me-2">
-                  <i class="bi bi-fire"></i> Xu hướng ↗
-                </span>
-                <span class="badge bg-light text-secondary border">
-                  {{ book.category?.category_name || 'Sách tổng hợp' }}
+              <!-- Huy hiệu thể loại -->
+              <div class="mb-2" v-if="book.category">
+                <span class="badge bg-light text-secondary border px-2 py-1">
+                  {{ book.category.category_name }}
                 </span>
               </div>
 
@@ -313,15 +310,9 @@
                       <td class="text-secondary py-2">Số trang</td>
                       <td class="text-dark py-2">{{ book.page_count ? `${book.page_count} trang` : 'Đang cập nhật' }}</td>
                     </tr>
-                    <tr class="border-bottom">
+                    <tr>
                       <td class="text-secondary py-2">Hình thức</td>
                       <td class="text-dark py-2">{{ book.cover_type || 'Bìa Mềm' }}</td>
-                    </tr>
-                    <tr>
-                      <td class="text-secondary py-2">Sản phẩm bán chạy nhất</td>
-                      <td class="text-primary fw-semibold py-2">
-                        Top 100 sản phẩm {{ book.category?.category_name || 'Sách' }} bán chạy của tháng
-                      </td>
                     </tr>
                   </tbody>
                 </table>
