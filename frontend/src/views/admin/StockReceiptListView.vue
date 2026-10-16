@@ -97,10 +97,9 @@
               <!-- Loại phiếu -->
               <td>
                 <span 
-                  class="badge px-2 py-1 rounded-pill"
+                  class="badge px-2 py-1"
                   :class="receipt.type === 'import' ? 'bg-success-subtle text-success-emphasis border border-success-subtle' : 'bg-warning-subtle text-warning-emphasis border border-warning-subtle'"
                 >
-                  <i :class="receipt.type === 'import' ? 'bi bi-arrow-down-left' : 'bi bi-arrow-up-right'" class="me-1"></i>
                   {{ receipt.type === 'import' ? 'Nhập kho' : 'Xuất kho' }}
                 </span>
               </td>
@@ -112,9 +111,6 @@
                 </div>
                 <small v-if="receipt.note" class="text-muted text-truncate d-block" style="max-width: 250px;" :title="receipt.note">
                   {{ receipt.note }}
-                </small>
-                <small v-if="receipt.status === 'cancelled' && receipt.cancel_reason" class="text-danger text-truncate d-block mt-1" style="max-width: 250px;" :title="'Lý do hủy: ' + receipt.cancel_reason">
-                  <i class="bi bi-x-circle me-1"></i>Lý do hủy: {{ receipt.cancel_reason }}
                 </small>
               </td>
 
@@ -131,7 +127,7 @@
               <!-- Trạng thái -->
               <td class="text-center">
                 <span 
-                  class="badge px-3 py-2 rounded-pill"
+                  class="badge px-3 py-2"
                   :class="getStatusBadgeClass(receipt.status)"
                 >
                   {{ getStatusText(receipt.status) }}
@@ -202,42 +198,51 @@
     <div v-if="showDetailModal" class="modal fade show d-block" tabindex="-1">
       <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow-lg rounded-4">
-          <div class="modal-header border-bottom-0 pb-0">
-            <div>
-              <h5 class="modal-title fw-bold text-dark">
-                Chi tiết phiếu: <span class="text-primary font-monospace">{{ selectedReceipt?.receipt_code }}</span>
-              </h5>
-              <div class="small text-muted mt-2 d-flex flex-wrap gap-2 align-items-center">
-                <span>Loại: <strong>{{ selectedReceipt?.type === 'import' ? 'Nhập kho' : 'Xuất kho' }}</strong></span>
-                <span>•</span>
-                <span v-if="selectedReceipt?.type === 'import'">
-                  Nhà cung cấp: <strong class="text-primary">{{ selectedReceipt?.supplier_name || 'Không xác định' }}</strong>
-                </span>
-                <span v-else>
-                  Hình thức: <strong class="text-secondary">Xuất kho nội bộ</strong>
-                </span>
-                <span>•</span>
-                <span>Ngày tạo: {{ formatDate(selectedReceipt?.created_date) }}</span>
-                <span>•</span>
-                <span>Trạng thái: <span class="badge" :class="getStatusBadgeClass(selectedReceipt?.status)">{{ getStatusText(selectedReceipt?.status) }}</span></span>
-              </div>
-            </div>
+          <div class="modal-header border-bottom-0 pb-0 pt-4 px-4">
+            <h5 class="modal-title fw-bold text-dark">
+              Chi tiết phiếu: <span class="text-primary font-monospace">{{ selectedReceipt?.receipt_code }}</span>
+            </h5>
             <button type="button" class="btn-close" @click="showDetailModal = false"></button>
           </div>
           <div class="modal-body p-4">
-            <!-- Ghi chú ban đầu của phiếu -->
-            <div v-if="selectedReceipt?.note" class="alert alert-light border small mb-2 d-flex align-items-start gap-2">
-              <i class="bi bi-chat-left-text text-secondary mt-1"></i>
-              <div>
-                <strong>Ghi chú:</strong> {{ selectedReceipt.note }}
+            <!-- Banner cảnh báo khi phiếu Đã hủy -->
+            <div v-if="selectedReceipt?.status === 'cancelled'" class="alert alert-danger border-danger-subtle rounded-3 py-2 px-3 mb-3">
+              <div class="fw-bold text-danger d-flex align-items-center gap-2">
+                <i class="bi bi-slash-circle-fill"></i>
+                <span>PHIẾU ĐÃ HỦY</span>
+              </div>
+              <div v-if="selectedReceipt?.cancel_reason" class="small text-dark mt-1 ps-4">
+                <strong>Lý do:</strong> {{ selectedReceipt.cancel_reason }}
               </div>
             </div>
 
-            <!-- Khung cảnh báo Lý do hủy (nếu phiếu đã hủy) -->
-            <div v-if="selectedReceipt?.status === 'cancelled' && selectedReceipt?.cancel_reason" class="alert alert-danger border-danger-subtle small mb-3 d-flex align-items-start gap-2">
-              <i class="bi bi-exclamation-octagon-fill text-danger mt-1 fs-6"></i>
-              <div>
-                <strong class="text-danger">Lý do hủy phiếu:</strong> {{ selectedReceipt.cancel_reason }}
+            <!-- Khung thông tin chứng từ 2 cột -->
+            <div class="bg-light border rounded-3 p-3 mb-3 small">
+              <div class="row g-2">
+                <div class="col-sm-6">
+                  <span class="text-secondary d-inline-block" style="width: 110px;">Loại phiếu:</span>
+                  <strong class="text-dark">{{ selectedReceipt?.type === 'import' ? 'Nhập kho' : 'Xuất kho' }}</strong>
+                </div>
+                <div class="col-sm-6">
+                  <span class="text-secondary d-inline-block" style="width: 110px;">Ngày tạo:</span>
+                  <strong class="text-dark">{{ formatDate(selectedReceipt?.created_date) }}</strong>
+                </div>
+                <div class="col-sm-6">
+                  <span class="text-secondary d-inline-block" style="width: 110px;">
+                    {{ selectedReceipt?.type === 'import' ? 'Nhà cung cấp:' : 'Hình thức:' }}
+                  </span>
+                  <strong :class="selectedReceipt?.type === 'import' ? 'text-primary' : 'text-dark'">
+                    {{ selectedReceipt?.type === 'import' ? (selectedReceipt?.supplier_name || 'Không xác định') : 'Xuất kho nội bộ' }}
+                  </strong>
+                </div>
+                <div class="col-sm-6">
+                  <span class="text-secondary d-inline-block" style="width: 110px;">Trạng thái:</span>
+                  <span class="badge" :class="getStatusBadgeClass(selectedReceipt?.status)">{{ getStatusText(selectedReceipt?.status) }}</span>
+                </div>
+                <div v-if="selectedReceipt?.note" class="col-12 pt-2 border-top mt-2">
+                  <span class="text-secondary d-inline-block" style="width: 110px;">Ghi chú:</span>
+                  <span class="text-dark">{{ selectedReceipt.note }}</span>
+                </div>
               </div>
             </div>
 
@@ -252,7 +257,7 @@
                     <th scope="col" class="text-end pe-3" style="width: 150px;">Thành tiền</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody :class="{ 'opacity-50': selectedReceipt?.status === 'cancelled' }">
                   <tr v-for="(item, idx) in selectedReceipt?.details" :key="idx">
                     <td class="ps-3 text-muted">{{ idx + 1 }}</td>
                     <td>
@@ -266,8 +271,13 @@
                 </tbody>
                 <tfoot class="table-light">
                   <tr>
-                    <td colspan="4" class="text-end fw-bold">Tổng cộng:</td>
-                    <td class="text-end pe-3 fw-bold fs-6 text-danger">
+                    <td colspan="4" class="text-end fw-bold" :class="{ 'text-muted': selectedReceipt?.status === 'cancelled' }">
+                      {{ selectedReceipt?.status === 'cancelled' ? 'Giá trị phiếu (không ghi nhận):' : 'Tổng cộng:' }}
+                    </td>
+                    <td 
+                      class="text-end pe-3 fw-bold fs-6"
+                      :class="selectedReceipt?.status === 'cancelled' ? 'text-muted text-decoration-line-through' : 'text-danger'"
+                    >
                       {{ formatCurrency(selectedReceipt?.total_cost) }}
                     </td>
                   </tr>

@@ -276,7 +276,7 @@ const toggleStatus = async (book) => {
 
 // Xóa sách vĩnh viễn
 const deleteBook = async (id) => {
-  if (!confirm('Bạn có chắc chắn muốn xóa cuốn sách này? Lưu ý: Nếu sách đã có đơn hàng hoặc phiếu nhập xuất, hệ thống sẽ từ chối xóa.')) return
+  if (!confirm('Bạn có chắc chắn muốn xóa cuốn sách này? Lưu ý: Nếu sách đã có đơn hàng hoặc phiếu nhập xuất, bạn sẽ không thể xóa.')) return
   try {
     await bookService.delete(id)
     alertMsg.value = 'Đã xóa sách thành công!'

@@ -24,6 +24,11 @@ app.get('/api/health', (req, res) => {
 // Auth Routes
 app.use('/api/auth', require('./routes/auth.routes'));
 
+// Customer & Public Routes
+app.use('/api/categories', require('./routes/customer/category.routes'));
+app.use('/api/books', require('./routes/customer/book.routes'));
+app.use('/api/cart', require('./routes/customer/cart.routes'));
+
 // Admin Routes
 app.use('/api/admin/categories', verifyToken, requireAdmin, require('./routes/admin/category.routes'));
 app.use('/api/admin/authors', verifyToken, requireAdmin, require('./routes/admin/author.routes'));

@@ -16,7 +16,7 @@
             <img src="https://cdni.iconscout.com/illustration/premium/thumb/empty-state-2130362-1800926.png" alt="Empty Dashboard" class="mb-4 opacity-75" style="max-height: 200px; object-fit: contain;">
             <h4 class="fw-bold text-dark mb-2">Dashboard đang trống</h4>
             <p class="text-secondary mx-auto" style="max-width: 500px;">
-              Chào mừng bạn đến với trang quản trị BookStore AI. Các biểu đồ, số liệu thống kê và báo cáo hệ thống sẽ được hiển thị tại đây trong tương lai.
+              Chào mừng bạn đến với trang quản trị BookStore AI.
             </p>
             <button class="btn btn-primary mt-3 px-4 shadow-sm" style="border-radius: 8px;">
               <i class="bi bi-plus-circle me-2"></i>Thêm widget mới

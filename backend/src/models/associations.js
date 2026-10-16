@@ -7,6 +7,8 @@ const BookImage = require('./BookImage');
 const Inventory = require('./Inventory');
 const StockReceipt = require('./StockReceipt');
 const StockReceiptDetail = require('./StockReceiptDetail');
+const User = require('./user.model');
+const CartItem = require('./CartItem');
 
 // 1. Sách - Thể loại (N - 1)
 Category.hasMany(Book, { foreignKey: 'category_id', as: 'books' });
@@ -53,6 +55,12 @@ StockReceiptDetail.belongsTo(StockReceipt, { foreignKey: 'receipt_id', as: 'rece
 Book.hasMany(StockReceiptDetail, { foreignKey: 'book_id', as: 'stock_receipt_details' });
 StockReceiptDetail.belongsTo(Book, { foreignKey: 'book_id', as: 'book' });
 
+// 8. Giỏ hàng - Người dùng & Sách
+User.hasMany(CartItem, { foreignKey: 'user_id', as: 'cart_items' });
+CartItem.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+Book.hasMany(CartItem, { foreignKey: 'book_id', as: 'cart_items' });
+CartItem.belongsTo(Book, { foreignKey: 'book_id', as: 'book' });
+
 module.exports = { 
     Book, 
     Category, 
@@ -62,5 +70,7 @@ module.exports = {
     BookImage, 
     Inventory,
     StockReceipt,
-    StockReceiptDetail
+    StockReceiptDetail,
+    User,
+    CartItem
 };

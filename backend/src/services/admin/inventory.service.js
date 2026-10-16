@@ -428,14 +428,18 @@ class InventoryService {
             bookWhere.category_id = parseInt(query.category_id, 10);
         }
 
-        // Lọc theo trạng thái tồn kho
-        const invWhere = {};
+        // Lọc theo trạng thái tồn kho (COALESCE để sách chưa có dòng inventory vẫn tính là tồn = 0)
+        const stockExpr = sequelize.fn('COALESCE', sequelize.col('inventory.stock_quantity'), 0);
         if (query.stock_status === 'out_of_stock') {
-            invWhere.stock_quantity = 0;
+            bookWhere[Op.and] = [sequelize.where(stockExpr, 0)];
         } else if (query.stock_status === 'low_stock') {
-            invWhere.stock_quantity = { [Op.gt]: 0, [Op.lte]: LOW_STOCK_THRESHOLD };
+            bookWhere[Op.and] = [
+                sequelize.where(stockExpr, { [Op.gt]: 0, [Op.lte]: LOW_STOCK_THRESHOLD })
+            ];
         } else if (query.stock_status === 'in_stock') {
-            invWhere.stock_quantity = { [Op.gt]: LOW_STOCK_THRESHOLD };
+            bookWhere[Op.and] = [
+                sequelize.where(stockExpr, { [Op.gt]: LOW_STOCK_THRESHOLD })
+            ];
         }
 
         const { rows, count } = await Book.findAndCountAll({
@@ -444,17 +448,17 @@ class InventoryService {
                 {
                     model: Inventory,
                     as: 'inventory',
-                    where: Object.keys(invWhere).length > 0 ? invWhere : undefined,
-                    required: Object.keys(invWhere).length > 0
+                    required: false
                 },
                 { model: Category, as: 'category', attributes: ['category_id', 'category_name'] },
-                { model: BookImage, as: 'images', attributes: ['image_url', 'is_primary'] }
+                { model: BookImage, as: 'images', attributes: ['image_url', 'is_primary'], separate: true }
             ],
             distinct: true,
+            subQuery: false,
             limit,
             offset,
             order: [
-                [{ model: Inventory, as: 'inventory' }, 'stock_quantity', 'ASC'],
+                [stockExpr, 'ASC'],
                 ['created_at', 'DESC']
             ]
         });
@@ -462,12 +466,13 @@ class InventoryService {
         // Tính các chỉ số thống kê kho tổng quan
         const totalBooks = await Book.count();
         const totalQuantity = (await Inventory.sum('stock_quantity')) || 0;
+        const inStockCount = await Inventory.count({
+            where: { stock_quantity: { [Op.gt]: LOW_STOCK_THRESHOLD } }
+        });
         const lowStockCount = await Inventory.count({
             where: { stock_quantity: { [Op.gt]: 0, [Op.lte]: LOW_STOCK_THRESHOLD } }
         });
-        const outOfStockCount = await Inventory.count({
-            where: { stock_quantity: 0 }
-        });
+        const outOfStockCount = Math.max(0, totalBooks - inStockCount - lowStockCount);
 
         return {
             inventory: rows,

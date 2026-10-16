@@ -25,58 +25,30 @@
     <!-- 4 Thẻ Thống Kê Tổng Quan -->
     <div class="row g-3 mb-4">
       <div class="col-sm-6 col-xl-3">
-        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
-          <div class="d-flex align-items-center">
-            <div class="rounded-circle bg-primary-subtle p-3 text-primary me-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
-              <i class="bi bi-journal-bookmark fs-4"></i>
-            </div>
-            <div>
-              <div class="text-muted small fw-bold text-uppercase">Tổng đầu sách</div>
-              <div class="fs-4 fw-bold text-dark">{{ stats.total_books || 0 }}</div>
-            </div>
-          </div>
+        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100 border-start border-primary border-4">
+          <div class="text-muted small fw-semibold mb-1">Tổng đầu sách</div>
+          <div class="fs-3 fw-bold text-dark">{{ stats.total_books || 0 }}</div>
         </div>
       </div>
 
       <div class="col-sm-6 col-xl-3">
-        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
-          <div class="d-flex align-items-center">
-            <div class="rounded-circle bg-success-subtle p-3 text-success me-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
-              <i class="bi bi-boxes fs-4"></i>
-            </div>
-            <div>
-              <div class="text-muted small fw-bold text-uppercase">Tổng tồn kho</div>
-              <div class="fs-4 fw-bold text-success">{{ formatNumber(stats.total_quantity) }}</div>
-            </div>
-          </div>
+        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100 border-start border-success border-4">
+          <div class="text-muted small fw-semibold mb-1">Tổng tồn kho</div>
+          <div class="fs-3 fw-bold text-success">{{ formatNumber(stats.total_quantity) }}</div>
         </div>
       </div>
 
       <div class="col-sm-6 col-xl-3">
-        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
-          <div class="d-flex align-items-center">
-            <div class="rounded-circle bg-warning-subtle p-3 text-warning me-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
-              <i class="bi bi-exclamation-triangle fs-4"></i>
-            </div>
-            <div>
-              <div class="text-muted small fw-bold text-uppercase">Sắp hết (≤ {{ stats.low_stock_threshold || 5 }})</div>
-              <div class="fs-4 fw-bold text-warning">{{ stats.low_stock_count || 0 }}</div>
-            </div>
-          </div>
+        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100 border-start border-warning border-4">
+          <div class="text-muted small fw-semibold mb-1">Sắp hết hàng</div>
+          <div class="fs-3 fw-bold text-warning">{{ stats.low_stock_count || 0 }}</div>
         </div>
       </div>
 
       <div class="col-sm-6 col-xl-3">
-        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
-          <div class="d-flex align-items-center">
-            <div class="rounded-circle bg-danger-subtle p-3 text-danger me-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
-              <i class="bi bi-x-octagon fs-4"></i>
-            </div>
-            <div>
-              <div class="text-muted small fw-bold text-uppercase">Hết hàng (= 0)</div>
-              <div class="fs-4 fw-bold text-danger">{{ stats.out_of_stock_count || 0 }}</div>
-            </div>
-          </div>
+        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100 border-start border-danger border-4">
+          <div class="text-muted small fw-semibold mb-1">Hết hàng</div>
+          <div class="fs-3 fw-bold text-danger">{{ stats.out_of_stock_count || 0 }}</div>
         </div>
       </div>
     </div>
@@ -108,9 +80,9 @@
           <div class="col-md-2">
             <select class="form-select shadow-none" v-model="filters.stock_status" @change="handleSearch">
               <option value="">Tất cả mức tồn</option>
-              <option value="in_stock">Còn nhiều (> 5)</option>
-              <option value="low_stock">Sắp hết (1 - 5)</option>
-              <option value="out_of_stock">Hết hàng (0)</option>
+              <option value="in_stock">Còn hàng</option>
+              <option value="low_stock">Sắp hết hàng</option>
+              <option value="out_of_stock">Hết hàng</option>
             </select>
           </div>
           <div class="col-md-2 d-flex gap-2">
@@ -189,10 +161,9 @@
               <!-- Nhãn tình trạng tồn kho -->
               <td class="text-center">
                 <span 
-                  class="badge px-3 py-2 rounded-pill"
+                  class="badge px-3 py-2"
                   :class="getStockBadgeClass(book.inventory?.stock_quantity)"
                 >
-                  <i :class="getStockIcon(book.inventory?.stock_quantity)" class="me-1"></i>
                   {{ getStockStatusText(book.inventory?.stock_quantity) }}
                 </span>
               </td>
@@ -211,7 +182,7 @@
                   class="btn btn-sm btn-outline-primary"
                   title="Lập phiếu nhập thêm cho cuốn sách này"
                 >
-                  <i class="bi bi-box-arrow-in-down me-1"></i> Nhập thêm
+                  Nhập thêm
                 </router-link>
               </td>
             </tr>
@@ -349,22 +320,15 @@ const getStockTextColor = (qty) => {
 
 const getStockBadgeClass = (qty) => {
   const q = Number(qty) || 0
-  if (q === 0) return 'bg-danger text-white'
-  if (q <= stats.low_stock_threshold) return 'bg-warning-subtle text-warning-emphasis border border-warning'
-  return 'bg-success-subtle text-success-emphasis border border-success'
-}
-
-const getStockIcon = (qty) => {
-  const q = Number(qty) || 0
-  if (q === 0) return 'bi bi-x-circle-fill'
-  if (q <= stats.low_stock_threshold) return 'bi bi-exclamation-circle-fill'
-  return 'bi bi-check-circle-fill'
+  if (q === 0) return 'bg-danger-subtle text-danger-emphasis border border-danger-subtle'
+  if (q <= stats.low_stock_threshold) return 'bg-warning-subtle text-warning-emphasis border border-warning-subtle'
+  return 'bg-success-subtle text-success-emphasis border border-success-subtle'
 }
 
 const getStockStatusText = (qty) => {
   const q = Number(qty) || 0
   if (q === 0) return 'Hết hàng'
-  if (q <= stats.low_stock_threshold) return `Sắp hết (≤ ${stats.low_stock_threshold})`
+  if (q <= stats.low_stock_threshold) return 'Sắp hết hàng'
   return 'Còn hàng'
 }
 
