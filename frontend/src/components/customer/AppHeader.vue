@@ -1,8 +1,25 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
+import { useCartStore } from '@/stores/cartStore'
+
 const authStore = useAuthStore()
+const cartStore = useCartStore()
+const router = useRouter()
+
 const showAccountMenu = ref(false)
+const searchKeyword = ref('')
+
+const handleSearch = () => {
+  if (searchKeyword.value.trim()) {
+    router.push({ path: '/books', query: { search: searchKeyword.value.trim() } })
+  }
+}
+
+onMounted(() => {
+  cartStore.fetchCart()
+})
 </script>
 
 <template>
@@ -39,8 +56,19 @@ const showAccountMenu = ref(false)
 
           <!-- Thanh Search -->
           <div class="flex-grow-1 position-relative d-flex align-items-center bg-white border border-secondary-subtle" style="border-radius: 8px; padding: 4px;">
-            <input type="text" class="form-control border-0 shadow-none text-secondary ps-3" placeholder="50 năm Fahasang" style="font-size: 14px; background: transparent; height: 38px;">
-            <button class="btn border-0 d-flex align-items-center justify-content-center" style="border-radius: 6px; width: 65px; height: 38px; background-color: #c92127;">
+            <input 
+              type="text" 
+              class="form-control border-0 shadow-none text-secondary ps-3" 
+              placeholder="Tìm kiếm tựa sách, tác giả, ISBN..." 
+              v-model="searchKeyword"
+              @keyup.enter="handleSearch"
+              style="font-size: 14px; background: transparent; height: 38px;"
+            >
+            <button 
+              class="btn border-0 d-flex align-items-center justify-content-center" 
+              style="border-radius: 6px; width: 65px; height: 38px; background-color: #c92127;"
+              @click="handleSearch"
+            >
               <!-- Icon Kính lúp -->
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="white" viewBox="0 0 16 16">
                 <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
@@ -60,13 +88,19 @@ const showAccountMenu = ref(false)
           </div>
           
           <!-- Giỏ Hàng -->
-          <div class="text-center text-secondary custom-icon-btn position-relative d-flex flex-column align-items-center">
+          <router-link to="/cart" class="text-center text-secondary custom-icon-btn position-relative d-flex flex-column align-items-center text-decoration-none">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" class="mb-1">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
-            <span class="position-absolute translate-middle badge rounded-pill bg-danger" style="top: 2px; left: 70%; font-size: 10px;">3</span>
+            <span 
+              v-if="cartStore.totalItems > 0" 
+              class="position-absolute translate-middle badge rounded-pill bg-danger" 
+              style="top: 2px; left: 70%; font-size: 10px;"
+            >
+              {{ cartStore.totalItems }}
+            </span>
             <div style="font-size: 13px;">Giỏ Hàng</div>
-          </div>
+          </router-link>
           
           <!-- Tài khoản (Dropdown) -->
           <div class="position-relative" @mouseenter="showAccountMenu = true" @mouseleave="showAccountMenu = false">

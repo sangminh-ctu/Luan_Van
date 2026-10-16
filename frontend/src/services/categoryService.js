@@ -1,4 +1,7 @@
-// File services/categoryService.js
+import api from './api';
 
+export const publicCategoryService = {
+    getCategories: () => api.get('/categories').then(res => res.data)
+};
 
-export {};
+export default publicCategoryService;
