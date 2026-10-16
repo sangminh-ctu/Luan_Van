@@ -411,107 +411,97 @@
           </div>
         </div>
 
-        <!-- 4. KHỐI BOOKSTORE GIỚI THIỆU (Sách cùng thể loại - Hình 3 & 4) -->
-        <div class="bg-white rounded-4 shadow-sm p-4 mb-4" v-if="relatedBooks.length > 0">
-          <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
-            <h5 class="fw-bold text-dark mb-0 d-flex align-items-center">
-              <i class="bi bi-bookmark-star-fill text-danger me-2"></i> BOOKSTORE GIỚI THIỆU
-            </h5>
-            <span class="small text-muted">Các tác phẩm cùng thể loại nổi bật</span>
-          </div>
+        <!-- 4. KHỐI FAHASA GIỚI THIỆU (Carousel chuẩn theo ảnh) -->
+        <div class="bg-white rounded-4 shadow-sm p-4 mb-5 position-relative" v-if="relatedBooks.length > 0">
+          <h5 class="fw-bold text-dark text-uppercase mb-4">FAHASA GIỚI THIỆU</h5>
 
-          <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-3">
-            <div class="col" v-for="relBook in relatedBooks" :key="relBook.book_id">
-              <div 
-                class="card h-100 border-0 shadow-sm trend-card cursor-pointer position-relative bg-white"
-                @click="navigateToBook(relBook.book_id)"
-              >
-                <!-- Huy hiệu giảm giá -->
-                <div class="position-absolute top-0 start-0 m-2" v-if="relBook.discount_percent > 0" style="z-index: 2;">
-                  <span class="badge bg-danger shadow-sm">
-                    -{{ Math.round(relBook.discount_percent) }}%
-                  </span>
-                </div>
+          <!-- Nút cuộn trái -->
+          <button 
+            v-if="canScrollLeft"
+            class="btn btn-light rounded-circle shadow border position-absolute top-50 start-0 translate-middle-y z-3 ms-2 d-flex align-items-center justify-content-center"
+            style="width: 42px; height: 42px;"
+            type="button"
+            @click="scrollCarousel('left')"
+          >
+            <i class="bi bi-chevron-left fs-5"></i>
+          </button>
 
-                <div class="p-3 text-center">
-                  <img 
-                    :src="getBookCoverUrl(relBook.images, relBook.title)" 
-                    class="rounded img-fluid" 
-                    :alt="relBook.title"
-                    style="aspect-ratio: 3/4; object-fit: cover; width: 100%; max-height: 200px;"
-                  >
-                </div>
+          <!-- Nút cuộn phải -->
+          <button 
+            v-if="canScrollRight"
+            class="btn btn-light rounded-circle shadow border position-absolute top-50 end-0 translate-middle-y z-3 me-2 d-flex align-items-center justify-content-center"
+            style="width: 42px; height: 42px;"
+            type="button"
+            @click="scrollCarousel('right')"
+          >
+            <i class="bi bi-chevron-right fs-5"></i>
+          </button>
 
-                <div class="card-body p-3 d-flex flex-column">
-                  <h6 class="card-title text-truncate mb-2 fw-bold text-dark" style="font-size: 13px;" :title="relBook.title">
-                    {{ relBook.title }}
-                  </h6>
-
-                  <div class="mt-auto">
-                    <div class="d-flex align-items-center mb-1">
-                      <span class="text-danger fw-bold fs-6 me-2">{{ formatCurrency(relBook.final_price) }}</span>
-                    </div>
-                    <div v-if="relBook.discount_percent > 0" class="text-muted text-decoration-line-through small" style="font-size: 11px;">
-                      {{ formatCurrency(relBook.price) }}
-                    </div>
-                    <div class="text-warning small mt-1" style="font-size: 11px;">
-                      ★★★★★ <span class="text-muted">(0)</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 5. KHỐI GỢI Ý CHO BẠN (Hình 3 & 4) -->
-        <div class="bg-white rounded-4 shadow-sm overflow-hidden mb-5" v-if="suggestedBooks.length > 0">
-          <div class="p-3 text-center" style="background: linear-gradient(135deg, #A8E6CF, #56AB2F);">
-            <h5 class="mb-0 fw-bold text-white">✨ Gợi ý cho bạn ✨</h5>
-          </div>
-
-          <div class="p-4 bg-light">
-            <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-3">
-              <div class="col" v-for="sugBook in suggestedBooks" :key="sugBook.book_id">
-                <div 
-                  class="card h-100 border-0 shadow-sm trend-card cursor-pointer position-relative bg-white"
-                  @click="navigateToBook(sugBook.book_id)"
+          <!-- Danh sách sản phẩm trượt ngang (Horizontal Carousel) -->
+          <div 
+            ref="carouselRef" 
+            class="d-flex gap-3 overflow-auto pb-3 scrollbar-none px-1"
+            style="scroll-behavior: smooth;"
+            @scroll="checkScroll"
+          >
+            <div 
+              v-for="relBook in relatedBooks" 
+              :key="relBook.book_id"
+              class="card border-0 flex-shrink-0 cursor-pointer bg-white fahasa-item"
+              style="width: 200px;"
+              @click="navigateToBook(relBook.book_id)"
+            >
+              <div class="text-center p-2 mb-2">
+                <img 
+                  :src="getBookCoverUrl(relBook.images, relBook.title)" 
+                  class="rounded img-fluid" 
+                  :alt="relBook.title"
+                  style="aspect-ratio: 3/4; object-fit: cover; max-height: 220px; width: 100%;"
                 >
-                  <div class="position-absolute top-0 start-0 m-2" v-if="sugBook.discount_percent > 0" style="z-index: 2;">
-                    <span class="badge bg-danger shadow-sm">
-                      -{{ Math.round(sugBook.discount_percent) }}%
+              </div>
+
+              <div class="card-body p-1 d-flex flex-column">
+                <div 
+                  class="fw-semibold text-dark text-truncate-2 mb-2 small" 
+                  style="min-height: 38px; line-height: 1.4;" 
+                  :title="relBook.title"
+                >
+                  {{ relBook.title }}
+                </div>
+
+                <div class="mt-auto">
+                  <div class="d-flex align-items-baseline gap-2 mb-1">
+                    <span class="text-danger fw-bold fs-6">{{ formatCurrency(relBook.final_price) }}</span>
+                    <span v-if="relBook.discount_percent > 0" class="badge bg-danger" style="font-size: 11px;">
+                      -{{ Math.round(relBook.discount_percent) }}%
                     </span>
                   </div>
 
-                  <div class="p-3 text-center">
-                    <img 
-                      :src="getBookCoverUrl(sugBook.images, sugBook.title)" 
-                      class="rounded img-fluid" 
-                      :alt="sugBook.title"
-                      style="aspect-ratio: 3/4; object-fit: cover; width: 100%; max-height: 200px;"
-                    >
+                  <div 
+                    v-if="relBook.discount_percent > 0" 
+                    class="text-muted text-decoration-line-through small" 
+                    style="font-size: 12px; min-height: 18px;"
+                  >
+                    {{ formatCurrency(relBook.price) }}
                   </div>
+                  <div v-else style="min-height: 18px;"></div>
 
-                  <div class="card-body p-3 d-flex flex-column">
-                    <h6 class="card-title text-truncate mb-2 fw-bold text-dark" style="font-size: 13px;" :title="sugBook.title">
-                      {{ sugBook.title }}
-                    </h6>
-
-                    <div class="mt-auto">
-                      <div class="d-flex align-items-center mb-1">
-                        <span class="text-danger fw-bold fs-6 me-2">{{ formatCurrency(sugBook.final_price) }}</span>
-                      </div>
-                      <div v-if="sugBook.discount_percent > 0" class="text-muted text-decoration-line-through small" style="font-size: 11px;">
-                        {{ formatCurrency(sugBook.price) }}
-                      </div>
-                      <div class="text-warning small mt-1" style="font-size: 11px;">
-                        ★★★★★ <span class="text-muted">(0)</span>
-                      </div>
-                    </div>
+                  <div class="text-secondary small mt-1" style="font-size: 11px;">
+                    ☆☆☆☆☆ <span class="text-muted">(0)</span>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
+
+          <!-- Nút Xem thêm ở giữa dưới cùng -->
+          <div class="text-center mt-3 pt-2">
+            <button 
+              class="btn btn-outline-danger px-5 py-2 fw-semibold rounded-2"
+              @click="handleSeeMore"
+            >
+              Xem thêm
+            </button>
           </div>
         </div>
 
@@ -634,7 +624,6 @@ const cartStore = useCartStore();
 // Trạng thái dữ liệu
 const book = ref(null);
 const relatedBooks = ref([]);
-const suggestedBooks = ref([]);
 const isLoading = ref(true);
 const errorMessage = ref('');
 
@@ -643,6 +632,11 @@ const selectedImageIndex = ref(0);
 const quantity = ref(1);
 const isAddingCart = ref(false);
 const isExpandedDesc = ref(false);
+
+// Carousel điều hướng sách liên quan
+const carouselRef = ref(null);
+const canScrollLeft = ref(false);
+const canScrollRight = ref(true);
 
 // Toast & Modal
 const showToast = ref(false);
@@ -755,9 +749,6 @@ async function loadBookDetail(id) {
     if (res.category_id) {
       loadRelatedBooks(res.book_id, res.category_id);
     }
-
-    // Tải thêm sách gợi ý
-    loadSuggestedBooks();
   } catch (error) {
     console.error('Lỗi tải chi tiết sách:', error);
     errorMessage.value = error.response?.data?.message || 'Không thể tải thông tin cuốn sách';
@@ -766,26 +757,37 @@ async function loadBookDetail(id) {
   }
 }
 
-// Tải sách cùng thể loại
+// Tải sách cùng thể loại (12 cuốn để cuộn carousel)
 async function loadRelatedBooks(bookId, categoryId) {
   try {
-    const res = await publicBookService.getRelatedBooks(bookId, categoryId);
+    const res = await publicBookService.getRelatedBooks(bookId, categoryId, 12);
     relatedBooks.value = res || [];
+    setTimeout(checkScroll, 150);
   } catch (error) {
     console.error('Lỗi tải sách liên quan:', error);
   }
 }
 
-// Tải sách gợi ý (Sách hot / giảm sốc)
-async function loadSuggestedBooks() {
-  try {
-    const res = await publicBookService.getBooks({
-      flash_sale: true,
-      limit: 5
-    });
-    suggestedBooks.value = (res.books || []).filter(b => b.book_id !== book.value?.book_id).slice(0, 5);
-  } catch (error) {
-    console.error('Lỗi tải sách gợi ý:', error);
+// Điều hướng cuộn carousel
+function scrollCarousel(direction) {
+  if (!carouselRef.value) return;
+  const amount = direction === 'left' ? -420 : 420;
+  carouselRef.value.scrollBy({ left: amount, behavior: 'smooth' });
+  setTimeout(checkScroll, 300);
+}
+
+function checkScroll() {
+  if (!carouselRef.value) return;
+  const el = carouselRef.value;
+  canScrollLeft.value = el.scrollLeft > 10;
+  canScrollRight.value = el.scrollLeft + el.clientWidth < el.scrollWidth - 10;
+}
+
+// Nút Xem thêm: xem thêm sách cùng thể loại trên trang chủ
+function handleSeeMore() {
+  if (book.value?.category_id) {
+    router.push({ path: '/', query: { category: book.value.category_id } });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 }
 
@@ -882,13 +884,12 @@ onMounted(() => {
   scrollbar-width: none;
 }
 
-.trend-card {
+.fahasa-item {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.trend-card:hover {
+.fahasa-item:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.1) !important;
 }
 
 .main-book-image {
