@@ -186,7 +186,7 @@
                 </div>
               </div>
 
-              <!-- Đánh giá sao & Lượt bán -->
+              <!-- Đánh giá sao -->
               <div class="d-flex align-items-center small gap-2 pb-3 border-bottom mb-3">
                 <div class="text-warning">
                   <i class="bi bi-star"></i>
@@ -196,8 +196,6 @@
                   <i class="bi bi-star"></i>
                 </div>
                 <span class="text-muted">(0 đánh giá)</span>
-                <span class="text-muted">|</span>
-                <span class="text-muted">Đã bán {{ soldCount }}</span>
               </div>
 
               <!-- Khối Giá Bán (Fahasa Red Theme) -->
@@ -711,13 +709,6 @@ const dimensionsText = computed(() => {
   const h = book.value.height;
   if (!l && !w && !h) return '20 x 13 cm';
   return `${l || 20} x ${w || 13} ${h ? 'x ' + h : ''} cm`;
-});
-
-// Số lượng đã bán giả lập theo ID
-const soldCount = computed(() => {
-  if (!book.value) return '1.2k';
-  const val = ((book.value.book_id * 137) % 850) + 50;
-  return `${val}`;
 });
 
 // Tăng/giảm số lượng
