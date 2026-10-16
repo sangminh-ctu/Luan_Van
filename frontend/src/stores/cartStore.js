@@ -56,7 +56,6 @@ export const useCartStore = defineStore('cart', () => {
             return { success: true };
         } catch (error) {
             const msg = error.response?.data?.message || error.message;
-            alert(msg);
             return { success: false, message: msg };
         } finally {
             isLoading.value = false;

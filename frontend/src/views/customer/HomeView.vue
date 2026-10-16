@@ -523,6 +523,11 @@ const handleAddToCart = async (book) => {
     setTimeout(() => {
       toastMsg.value = '';
     }, 3000);
+  } else if (res.message) {
+    toastMsg.value = res.message;
+    setTimeout(() => {
+      toastMsg.value = '';
+    }, 4000);
   }
 };
 

@@ -38,8 +38,12 @@ app.use('/api/admin', verifyToken, requireAdmin, require('./routes/admin/invento
 
 // Global Error Handler
 app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ message: 'Đã có lỗi xảy ra', error: err.message });
+    console.error(err.stack || err);
+    const status = err.status || err.statusCode || 500;
+    res.status(status).json({ 
+        message: err.message || 'Đã có lỗi xảy ra', 
+        error: err.message 
+    });
 });
 
 module.exports = app;

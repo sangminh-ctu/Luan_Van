@@ -265,6 +265,15 @@
                 </span>
               </div>
 
+              <!-- Cảnh báo số lượng đã có trong giỏ hàng -->
+              <div v-if="currentInCart > 0" class="small mt-2 p-2 rounded bg-light border-start border-3" :class="currentInCart >= stockQuantity ? 'border-danger text-danger' : 'border-primary text-secondary'">
+                <i class="bi me-1" :class="currentInCart >= stockQuantity ? 'bi-exclamation-triangle-fill text-danger' : 'bi-info-circle-fill text-primary'"></i>
+                <span>Bạn đã có <strong>{{ currentInCart }}</strong> cuốn trong giỏ hàng.</span>
+                <span v-if="currentInCart >= stockQuantity" class="fw-semibold ms-1">
+                  (Đã đạt tối đa số lượng tồn kho)
+                </span>
+              </div>
+
             </div>
 
             <!-- 2. THẺ THÔNG TIN CHI TIẾT (Specs Table - Hình 1 & 2) -->
@@ -517,9 +526,12 @@
       >
         <div class="d-flex">
           <div class="toast-body d-flex align-items-center">
-            <i class="bi bi-check-circle-fill text-success fs-4 me-2"></i>
+            <i 
+              class="bi fs-4 me-2" 
+              :class="toastType === 'error' ? 'bi-exclamation-triangle-fill text-warning' : 'bi-check-circle-fill text-success'"
+            ></i>
             <div>
-              <div class="fw-bold">Thành công!</div>
+              <div class="fw-bold">{{ toastType === 'error' ? 'Không thể thêm vào giỏ' : 'Thành công!' }}</div>
               <div class="small">{{ toastMessage }}</div>
             </div>
           </div>
@@ -635,10 +647,17 @@ const canScrollRight = ref(true);
 // Toast & Modal
 const showToast = ref(false);
 const toastMessage = ref('');
+const toastType = ref('success');
 const showReviewModal = ref(false);
 const reviewRating = ref(5);
 const reviewTitle = ref('');
 const reviewComment = ref('');
+
+// Số lượng cuốn sách này hiện đã có trong giỏ hàng của user
+const currentInCart = computed(() => {
+  const item = cartStore.items.find(i => i.book_id === book.value?.book_id);
+  return item ? item.quantity : 0;
+});
 
 const defaultDescription = `Tác phẩm mang đến cho độc giả những trải nghiệm sâu sắc và góc nhìn đa chiều về cuộc sống và con người. Cuốn sách không chỉ là một ấn phẩm giải trí đơn thuần mà còn chứa đựng nhiều thông điệp nhân văn đầy ý nghĩa.`;
 
@@ -794,7 +813,9 @@ async function handleAddToCart() {
     const result = await cartStore.addToCart(book.value.book_id, quantity.value);
     
     if (result.success) {
-      triggerToast(`Đã thêm ${quantity.value} cuốn "${book.value.title}" vào giỏ hàng.`);
+      triggerToast(`Đã thêm ${quantity.value} cuốn "${book.value.title}" vào giỏ hàng.`, 'success');
+    } else if (result.message) {
+      triggerToast(result.message, 'error');
     }
   } finally {
     isAddingCart.value = false;
@@ -811,19 +832,22 @@ async function handleBuyNow() {
     
     if (result.success) {
       router.push('/cart');
+    } else if (result.message) {
+      triggerToast(result.message, 'error');
     }
   } finally {
     isAddingCart.value = false;
   }
 }
 
-// Kích hoạt Toast thông báo
-function triggerToast(msg) {
+// Kích hoạt Toast thông báo (Hỗ trợ type: success | error)
+function triggerToast(msg, type = 'success') {
   toastMessage.value = msg;
+  toastType.value = type;
   showToast.value = true;
   setTimeout(() => {
     showToast.value = false;
-  }, 3500);
+  }, 4000);
 }
 
 // Modal viết đánh giá (Placeholder giao diện)
