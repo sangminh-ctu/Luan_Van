@@ -135,8 +135,111 @@
         </div>
       </div>
 
-      <!-- 4. KHỐI BEST SELLERS / BẢNG XẾP HẠNG (Hình 3 - Tinh chỉnh bằng Bootstrap) -->
-      <div class="bg-white rounded-4 shadow-sm p-4 mb-4">
+      <!-- 4. XU HƯỚNG MUA SẮM (Hình 2 - Dữ liệu thật từ Backend) -->
+      <div class="bg-white rounded-4 shadow-sm overflow-hidden mb-4">
+        <!-- Header màu hồng nhạt Fahasa -->
+        <div class="d-flex align-items-center p-3" style="background-color: #FCE4EC;">
+          <div class="bg-danger text-white p-2 rounded-3 me-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+            <i class="bi bi-graph-up-arrow fs-5"></i>
+          </div>
+          <h5 class="mb-0 fw-bold text-dark">Xu Hướng Mua Sắm</h5>
+        </div>
+
+        <!-- Tabs chuyển đổi xu hướng -->
+        <div class="d-flex px-3 pt-3 border-bottom gap-4">
+          <div 
+            class="cursor-pointer pb-2 trend-tab" 
+            :class="{ 'active': activeTrendTab === 'all' }" 
+            @click="switchTrendTab('all')"
+          >
+            Xu Hướng Theo Ngày
+          </div>
+          <div 
+            class="cursor-pointer pb-2 trend-tab" 
+            :class="{ 'active': activeTrendTab === 'discount' }" 
+            @click="switchTrendTab('discount')"
+          >
+            Sách HOT - Giảm Sốc
+          </div>
+          <div 
+            class="cursor-pointer pb-2 trend-tab" 
+            :class="{ 'active': activeTrendTab === 'newest' }" 
+            @click="switchTrendTab('newest')"
+          >
+            Sách Mới Nhất
+          </div>
+        </div>
+
+        <!-- Lưới sản phẩm Xu hướng (5 cột / hàng) -->
+        <div class="p-3 bg-light">
+          <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-3">
+            <div class="col" v-for="book in trendingBooks" :key="book.book_id">
+              <div class="card h-100 border-0 shadow-sm trend-card cursor-pointer position-relative bg-white" @click="goToDetail(book.book_id)">
+                
+                <!-- Huy hiệu nhãn góc trên ảnh -->
+                <div class="position-absolute top-0 start-0 m-2" style="z-index: 2;">
+                  <span v-if="book.discount_percent >= 30" class="badge bg-danger shadow-sm">
+                    Bán chạy 🔥
+                  </span>
+                  <span v-else-if="book.discount_percent > 0" class="badge bg-warning text-dark shadow-sm">
+                    Xu hướng ↗
+                  </span>
+                  <span v-else class="badge bg-primary shadow-sm">
+                    Mới
+                  </span>
+                </div>
+
+                <div class="p-3 text-center">
+                  <img 
+                    :src="getBookCoverUrl(book.images, book.title)" 
+                    class="rounded img-fluid" 
+                    :alt="book.title"
+                    style="aspect-ratio: 3/4; object-fit: cover; width: 100%; max-height: 220px;"
+                  >
+                </div>
+                
+                <div class="card-body p-3 d-flex flex-column">
+                  <h6 class="card-title text-truncate mb-2 fw-bold text-dark" style="font-size: 14px;" :title="book.title">
+                    {{ book.title }}
+                  </h6>
+                  
+                  <div class="mt-auto">
+                    <div class="d-flex align-items-center mb-1">
+                      <span class="text-danger fw-bold fs-5 me-2">{{ formatCurrency(book.final_price) }}</span>
+                      <span v-if="book.discount_percent > 0" class="badge bg-danger">
+                        -{{ Math.round(book.discount_percent) }}%
+                      </span>
+                    </div>
+                    <div v-if="book.discount_percent > 0" class="text-muted text-decoration-line-through small" style="font-size: 12px;">
+                      {{ formatCurrency(book.price) }}
+                    </div>
+                    
+                    <!-- Thanh tiến độ đã bán -->
+                    <div class="progress rounded-pill mt-2" style="height: 14px; background-color: #ffebee;">
+                      <div 
+                        class="progress-bar bg-danger rounded-pill fw-bold" 
+                        role="progressbar" 
+                        :style="{ width: getProgressPercent(book) + '%' }"
+                      >
+                        <span style="font-size: 9px;">Đã bán {{ getSoldNumber(book) }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="text-center mt-4 mb-2">
+            <button class="btn btn-outline-danger px-5 py-2 fw-bold shadow-sm" @click="loadMoreTrending">
+              Xem Thêm
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. KHỐI BEST SELLERS / BẢNG XẾP HẠNG (Hình 3 - Tinh chỉnh bằng Bootstrap) -->
+      <div class="bg-white rounded-4 shadow-sm p-4 mb-5">
         <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
           <h4 class="fw-bold text-dark mb-0 d-flex align-items-center">
             <i class="bi bi-fire text-danger me-2"></i> Best Sellers
@@ -290,109 +393,6 @@
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 5. XU HƯỚNG MUA SẮM (Hình 2 - Dữ liệu thật từ Backend) -->
-      <div class="bg-white rounded-4 shadow-sm overflow-hidden mb-5">
-        <!-- Header màu hồng nhạt Fahasa -->
-        <div class="d-flex align-items-center p-3" style="background-color: #FCE4EC;">
-          <div class="bg-danger text-white p-2 rounded-3 me-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
-            <i class="bi bi-graph-up-arrow fs-5"></i>
-          </div>
-          <h5 class="mb-0 fw-bold text-dark">Xu Hướng Mua Sắm</h5>
-        </div>
-
-        <!-- Tabs chuyển đổi xu hướng -->
-        <div class="d-flex px-3 pt-3 border-bottom gap-4">
-          <div 
-            class="cursor-pointer pb-2 trend-tab" 
-            :class="{ 'active': activeTrendTab === 'all' }" 
-            @click="switchTrendTab('all')"
-          >
-            Xu Hướng Theo Ngày
-          </div>
-          <div 
-            class="cursor-pointer pb-2 trend-tab" 
-            :class="{ 'active': activeTrendTab === 'discount' }" 
-            @click="switchTrendTab('discount')"
-          >
-            Sách HOT - Giảm Sốc
-          </div>
-          <div 
-            class="cursor-pointer pb-2 trend-tab" 
-            :class="{ 'active': activeTrendTab === 'newest' }" 
-            @click="switchTrendTab('newest')"
-          >
-            Sách Mới Nhất
-          </div>
-        </div>
-
-        <!-- Lưới sản phẩm Xu hướng (5 cột / hàng) -->
-        <div class="p-3 bg-light">
-          <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-3">
-            <div class="col" v-for="book in trendingBooks" :key="book.book_id">
-              <div class="card h-100 border-0 shadow-sm trend-card cursor-pointer position-relative bg-white" @click="goToDetail(book.book_id)">
-                
-                <!-- Huy hiệu nhãn góc trên ảnh -->
-                <div class="position-absolute top-0 start-0 m-2" style="z-index: 2;">
-                  <span v-if="book.discount_percent >= 30" class="badge bg-danger shadow-sm">
-                    Bán chạy 🔥
-                  </span>
-                  <span v-else-if="book.discount_percent > 0" class="badge bg-warning text-dark shadow-sm">
-                    Xu hướng ↗
-                  </span>
-                  <span v-else class="badge bg-primary shadow-sm">
-                    Mới
-                  </span>
-                </div>
-
-                <div class="p-3 text-center">
-                  <img 
-                    :src="getBookCoverUrl(book.images, book.title)" 
-                    class="rounded img-fluid" 
-                    :alt="book.title"
-                    style="aspect-ratio: 3/4; object-fit: cover; width: 100%; max-height: 220px;"
-                  >
-                </div>
-                
-                <div class="card-body p-3 d-flex flex-column">
-                  <h6 class="card-title text-truncate mb-2 fw-bold text-dark" style="font-size: 14px;" :title="book.title">
-                    {{ book.title }}
-                  </h6>
-                  
-                  <div class="mt-auto">
-                    <div class="d-flex align-items-center mb-1">
-                      <span class="text-danger fw-bold fs-5 me-2">{{ formatCurrency(book.final_price) }}</span>
-                      <span v-if="book.discount_percent > 0" class="badge bg-danger">
-                        -{{ Math.round(book.discount_percent) }}%
-                      </span>
-                    </div>
-                    <div v-if="book.discount_percent > 0" class="text-muted text-decoration-line-through small" style="font-size: 12px;">
-                      {{ formatCurrency(book.price) }}
-                    </div>
-                    
-                    <!-- Thanh tiến độ đã bán -->
-                    <div class="progress rounded-pill mt-2" style="height: 14px; background-color: #ffebee;">
-                      <div 
-                        class="progress-bar bg-danger rounded-pill fw-bold" 
-                        role="progressbar" 
-                        :style="{ width: getProgressPercent(book) + '%' }"
-                      >
-                        <span style="font-size: 9px;">Đã bán {{ getSoldNumber(book) }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="text-center mt-4 mb-2">
-            <button class="btn btn-outline-danger px-5 py-2 fw-bold shadow-sm" @click="loadMoreTrending">
-              Xem Thêm
-            </button>
           </div>
         </div>
       </div>
