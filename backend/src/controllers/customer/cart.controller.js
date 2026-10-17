@@ -30,7 +30,13 @@ exports.addToCart = async (req, res, next) => {
             return res.status(400).json({ message: 'book_id là bắt buộc' });
         }
 
-        const result = await cartService.addToCart(userId, parseInt(book_id, 10), quantity || 1);
+        const parsedBookId = Number(book_id);
+        if (!Number.isInteger(parsedBookId) || parsedBookId <= 0) {
+            return res.status(400).json({ message: 'book_id không hợp lệ' });
+        }
+
+        const qty = quantity === undefined ? 1 : quantity;
+        const result = await cartService.addToCart(userId, parsedBookId, qty);
         res.status(200).json({ message: 'Đã thêm sách vào giỏ hàng', cart: result });
     } catch (error) {
         next(error);
@@ -41,13 +47,13 @@ exports.updateQuantity = async (req, res, next) => {
     try {
         ensureCustomer(req, res);
         const userId = req.user.user_id || req.user.id;
-        const bookId = parseInt(req.params.bookId, 10);
+        const bookId = Number(req.params.bookId);
         const { quantity } = req.body;
 
-        if (isNaN(bookId)) {
+        if (!Number.isInteger(bookId) || bookId <= 0) {
             return res.status(400).json({ message: 'bookId không hợp lệ' });
         }
-        if (quantity === undefined || quantity === null) {
+        if (quantity === undefined || quantity === null || quantity === '') {
             return res.status(400).json({ message: 'quantity là bắt buộc' });
         }
 
@@ -62,9 +68,9 @@ exports.removeItem = async (req, res, next) => {
     try {
         ensureCustomer(req, res);
         const userId = req.user.user_id || req.user.id;
-        const bookId = parseInt(req.params.bookId, 10);
+        const bookId = Number(req.params.bookId);
 
-        if (isNaN(bookId)) {
+        if (!Number.isInteger(bookId) || bookId <= 0) {
             return res.status(400).json({ message: 'bookId không hợp lệ' });
         }
 
@@ -79,8 +85,15 @@ exports.clearCart = async (req, res, next) => {
     try {
         ensureCustomer(req, res);
         const userId = req.user.user_id || req.user.id;
+        const bookIds = req.body?.book_ids;
+
+        if (Array.isArray(bookIds) && bookIds.length > 0) {
+            const result = await cartService.removeMultipleFromCart(userId, bookIds);
+            return res.status(200).json({ message: 'Đã xóa các sản phẩm đã chọn khỏi giỏ hàng', cart: result });
+        }
+
         const result = await cartService.clearCart(userId);
-        res.status(200).json(result);
+        res.status(200).json({ message: 'Đã xóa toàn bộ giỏ hàng thành công', cart: result });
     } catch (error) {
         next(error);
     }

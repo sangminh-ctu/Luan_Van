@@ -58,8 +58,8 @@ class CartService {
                     title: book.title,
                     isbn: book.isbn,
                     cover_type: book.cover_type,
-                    price: book.price,
-                    discount_percent: book.discount_percent,
+                    price: Number(book.price),
+                    discount_percent: Number(book.discount_percent || 0),
                     final_price: finalPrice,
                     category: book.category,
                     images: book.images,
@@ -91,9 +91,9 @@ class CartService {
      * Thêm sách vào giỏ hàng (Upsert nguyên tử chống race condition bấm đúp)
      */
     async addToCart(userId, bookId, addQty = 1) {
-        const qty = parseInt(addQty, 10);
-        if (isNaN(qty) || qty <= 0 || qty > 99) {
-            const err = new Error('Số lượng sách thêm vào giỏ phải từ 1 đến 99');
+        const qty = Number(addQty);
+        if (!Number.isInteger(qty) || qty < 1 || qty > 99) {
+            const err = new Error('Số lượng sách thêm vào giỏ phải là số nguyên từ 1 đến 99');
             err.status = 400;
             throw err;
         }
@@ -147,9 +147,9 @@ class CartService {
      * Cập nhật số lượng của 1 dòng sách trong giỏ
      */
     async updateCartItem(userId, bookId, newQty) {
-        const qty = parseInt(newQty, 10);
-        if (isNaN(qty) || qty <= 0 || qty > 99) {
-            const err = new Error('Số lượng cập nhật phải từ 1 đến 99');
+        const qty = Number(newQty);
+        if (!Number.isInteger(qty) || qty < 1 || qty > 99) {
+            const err = new Error('Số lượng cập nhật phải là số nguyên từ 1 đến 99');
             err.status = 400;
             throw err;
         }
@@ -164,11 +164,23 @@ class CartService {
             throw err;
         }
 
-        // Kiểm tra tồn kho cảnh báo mềm
+        // Kiểm tra sách còn kinh doanh và tồn kho
         const book = await Book.findByPk(bookId, {
             include: [{ model: Inventory, as: 'inventory', attributes: ['stock_quantity'] }]
         });
-        const stock = book?.inventory?.stock_quantity || 0;
+
+        if (!book || !book.is_active) {
+            const err = new Error('Sách không tồn tại hoặc đã ngừng kinh doanh');
+            err.status = 400;
+            throw err;
+        }
+
+        const stock = book.inventory?.stock_quantity || 0;
+        if (stock === 0) {
+            const err = new Error(`Sách "${book.title}" hiện tại đã hết hàng`);
+            err.status = 400;
+            throw err;
+        }
 
         if (qty > stock) {
             const err = new Error(`Số lượng yêu cầu (${qty}) vượt quá số lượng tồn kho còn lại (${stock} cuốn)`);
@@ -200,13 +212,37 @@ class CartService {
     }
 
     /**
+     * Xóa danh sách các sách đã chọn khỏi giỏ hàng
+     */
+    async removeMultipleFromCart(userId, bookIds) {
+        const validIds = bookIds
+            .map(id => Number(id))
+            .filter(id => Number.isInteger(id) && id > 0);
+
+        if (validIds.length === 0) {
+            const err = new Error('Danh sách sách cần xóa không hợp lệ');
+            err.status = 400;
+            throw err;
+        }
+
+        await CartItem.destroy({
+            where: {
+                user_id: userId,
+                book_id: validIds
+            }
+        });
+
+        return await this.getCart(userId);
+    }
+
+    /**
      * Xóa sạch toàn bộ giỏ hàng
      */
     async clearCart(userId) {
         await CartItem.destroy({
             where: { user_id: userId }
         });
-        return { message: 'Đã xóa toàn bộ giỏ hàng thành công' };
+        return await this.getCart(userId);
     }
 }
 

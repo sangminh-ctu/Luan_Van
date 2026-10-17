@@ -9,6 +9,7 @@ import AdminLayout from '@/layouts/AdminLayout.vue'
 import HomeView from '@/views/customer/HomeView.vue'
 import BookDetailView from '@/views/customer/BookDetailView.vue'
 import CartView from '@/views/customer/CartView.vue'
+import CheckoutView from '@/views/customer/CheckoutView.vue'
 import DashboardView from '@/views/admin/DashboardView.vue'
 import BookListView from '@/views/admin/BookListView.vue'
 import BookFormView from '@/views/admin/BookFormView.vue'
@@ -36,7 +37,8 @@ const router = createRouter({
       children: [
         { path: '', name: 'home', component: HomeView },
         { path: 'books/:id', name: 'book-detail', component: BookDetailView },
-        { path: 'cart', name: 'cart', component: CartView, meta: { requiresAuth: true } }
+        { path: 'cart', name: 'cart', component: CartView, meta: { requiresAuth: true } },
+        { path: 'checkout', name: 'checkout', component: CheckoutView, meta: { requiresAuth: true } }
       ]
     },
 
