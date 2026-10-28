@@ -194,14 +194,28 @@
 
               <!-- Nhà cung cấp (Chỉ khi Nhập kho) -->
               <div v-if="form.type === 'import'" class="mb-3">
-                <label class="form-label fw-bold text-secondary small">Nhà cung cấp / Đối tác <span class="text-danger">*</span></label>
-                <input 
-                  type="text" 
-                  class="form-control shadow-none" 
-                  v-model="form.supplier_name" 
-                  placeholder="VD: NXB Trẻ, Công ty Fahasa..."
-                  required
-                >
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <label class="form-label fw-bold text-secondary small mb-0">Nhà cung cấp / Đối tác <span class="text-danger">*</span></label>
+                  <button 
+                    type="button" 
+                    class="btn btn-sm btn-link text-primary text-decoration-none p-0 fw-bold small"
+                    @click="openQuickSupplierModal"
+                  >
+                    <i class="bi bi-plus-circle me-1"></i>Thêm nhanh
+                  </button>
+                </div>
+                <select class="form-select shadow-none" v-model="form.supplier_id" required>
+                  <option value="" disabled>-- Chọn Nhà cung cấp --</option>
+                  <option v-for="s in suppliersList" :key="s.supplier_id" :value="s.supplier_id">
+                    {{ s.supplier_code ? '[' + s.supplier_code + '] ' : '' }}{{ s.supplier_name }}{{ s.contact_person ? ' - ' + s.contact_person : '' }}{{ s.phone ? ' (' + s.phone + ')' : '' }}
+                  </option>
+                </select>
+                <div v-if="selectedSupplier" class="mt-2 p-2 bg-light border rounded small text-secondary">
+                  <div><i class="bi bi-building me-1"></i><strong>{{ selectedSupplier.supplier_name }}</strong></div>
+                  <div v-if="selectedSupplier.contact_person"><i class="bi bi-person me-1"></i>Liên hệ: {{ selectedSupplier.contact_person }}</div>
+                  <div v-if="selectedSupplier.phone"><i class="bi bi-telephone me-1"></i>SĐT: {{ selectedSupplier.phone }}</div>
+                  <div v-if="selectedSupplier.address"><i class="bi bi-geo-alt me-1"></i>{{ selectedSupplier.address }}</div>
+                </div>
               </div>
 
               <!-- Ghi chú / Lý do (Bắt buộc khi Xuất kho) -->
@@ -254,13 +268,84 @@
 
       </div>
     </form>
+
+    <!-- Modal Thêm nhanh Nhà cung cấp -->
+    <div v-if="showQuickSupplierModal" class="modal-backdrop fade show" style="opacity: 0.5; z-index: 1060;"></div>
+    <div v-if="showQuickSupplierModal" class="modal fade show d-block" tabindex="-1" style="z-index: 1065;">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+          <div class="modal-header border-bottom-0 pb-0">
+            <h5 class="modal-title fw-bold text-dark">
+              <i class="bi bi-building me-2 text-primary"></i>Thêm nhanh Nhà cung cấp
+            </h5>
+            <button type="button" class="btn-close" @click="showQuickSupplierModal = false"></button>
+          </div>
+          <div class="modal-body">
+            <div v-if="quickSupplierError" class="alert alert-danger py-2 small mb-3">
+              <i class="bi bi-exclamation-circle me-1"></i>{{ quickSupplierError }}
+            </div>
+            <form @submit.prevent="handleSaveQuickSupplier">
+              <div class="mb-3">
+                <label class="form-label fw-bold text-secondary small">Mã nhà cung cấp <span class="text-danger">*</span></label>
+                <input 
+                  type="text" 
+                  class="form-control text-uppercase" 
+                  v-model="quickSupplierForm.supplier_code" 
+                  required 
+                  maxlength="20"
+                  pattern="[A-Za-z0-9_\-]{2,20}"
+                  title="2-20 ký tự: chữ không dấu, số, dấu - hoặc _"
+                  placeholder="VD: NCC001, FAHASA"
+                >
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-bold text-secondary small">Tên nhà cung cấp <span class="text-danger">*</span></label>
+                <input 
+                  type="text" 
+                  class="form-control" 
+                  v-model="quickSupplierForm.supplier_name" 
+                  required 
+                  maxlength="150"
+                  placeholder="VD: Công ty Fahasa..."
+                >
+              </div>
+              <div class="row g-2 mb-3">
+                <div class="col-6">
+                  <label class="form-label fw-bold text-secondary small">Người liên hệ</label>
+                  <input type="text" class="form-control" v-model="quickSupplierForm.contact_person" placeholder="Tên liên hệ...">
+                </div>
+                <div class="col-6">
+                  <label class="form-label fw-bold text-secondary small">Số điện thoại</label>
+                  <input type="text" class="form-control" v-model="quickSupplierForm.phone" placeholder="090...">
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-bold text-secondary small">Email</label>
+                <input type="email" class="form-control" v-model="quickSupplierForm.email" placeholder="email@...">
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-bold text-secondary small">Địa chỉ</label>
+                <input type="text" class="form-control" v-model="quickSupplierForm.address" placeholder="Địa chỉ đối tác...">
+              </div>
+              <div class="d-flex justify-content-end gap-2 pt-2 border-top">
+                <button type="button" class="btn btn-light btn-sm" @click="showQuickSupplierModal = false">Hủy</button>
+                <button type="submit" class="btn btn-primary btn-sm px-3 fw-bold" :disabled="isQuickSaving">
+                  <span v-if="isQuickSaving" class="spinner-border spinner-border-sm me-1"></span>
+                  Lưu & Chọn ngay
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { inventoryService, bookService } from '@/services/adminService'
+import { inventoryService, bookService, supplierService } from '@/services/adminService'
 
 const route = useRoute()
 const router = useRouter()
@@ -270,15 +355,68 @@ const isAutoComplete = ref(false)
 const alertMsg = ref('')
 
 const allBooksList = ref([])
+const suppliersList = ref([])
 
 const form = reactive({
   type: 'import',
-  supplier_name: '',
+  supplier_id: '',
   note: '',
   details: [
     { book_id: '', quantity: 1, unit_cost: 0, searchKeyword: '', showDropdown: false, current_stock: 0 }
   ]
 })
+
+const selectedSupplier = computed(() => {
+  if (!form.supplier_id) return null
+  return suppliersList.value.find(s => s.supplier_id === Number(form.supplier_id)) || null
+})
+
+// Quick Supplier Modal State
+const showQuickSupplierModal = ref(false)
+const isQuickSaving = ref(false)
+const quickSupplierError = ref('')
+const quickSupplierForm = reactive({
+  supplier_code: '',
+  supplier_name: '',
+  contact_person: '',
+  phone: '',
+  email: '',
+  address: ''
+})
+
+const openQuickSupplierModal = () => {
+  quickSupplierError.value = ''
+  quickSupplierForm.supplier_code = ''
+  quickSupplierForm.supplier_name = ''
+  quickSupplierForm.contact_person = ''
+  quickSupplierForm.phone = ''
+  quickSupplierForm.email = ''
+  quickSupplierForm.address = ''
+  showQuickSupplierModal.value = true
+}
+
+const handleSaveQuickSupplier = async () => {
+  quickSupplierError.value = ''
+  try {
+    isQuickSaving.value = true
+    const created = await supplierService.create(quickSupplierForm)
+    await fetchSuppliersList()
+    form.supplier_id = created.supplier_id
+    showQuickSupplierModal.value = false
+  } catch (err) {
+    quickSupplierError.value = err.response?.data?.message || 'Lỗi tạo nhà cung cấp: ' + err.message
+  } finally {
+    isQuickSaving.value = false
+  }
+}
+
+const fetchSuppliersList = async () => {
+  try {
+    suppliersList.value = await supplierService.getOptions()
+  } catch (err) {
+    console.error('Lỗi tải danh mục nhà cung cấp:', err)
+  }
+}
 
 // Tính tổng giá trị phiếu
 const computedTotalCost = computed(() => {
@@ -376,8 +514,8 @@ const handleSubmit = async (autoCompleteFlag) => {
     }
   }
 
-  if (form.type === 'import' && (!form.supplier_name || !form.supplier_name.trim())) {
-    alertMsg.value = 'Cần phải nhập thông tin Nhà cung cấp / Đối tác!'
+  if (form.type === 'import' && !form.supplier_id) {
+    alertMsg.value = 'Vui lòng chọn Nhà cung cấp / Đối tác cho phiếu nhập kho!'
     return
   }
 
@@ -392,7 +530,7 @@ const handleSubmit = async (autoCompleteFlag) => {
 
     const payload = {
       type: form.type,
-      supplier_name: form.type === 'import' ? form.supplier_name : null,
+      supplier_id: form.type === 'import' ? Number(form.supplier_id) : null,
       note: form.note,
       details: validDetails.map(d => ({
         book_id: d.book_id,
@@ -418,7 +556,10 @@ const formatCurrency = (val) => {
 }
 
 onMounted(async () => {
-  await fetchAllBooks()
+  await Promise.all([
+    fetchAllBooks(),
+    fetchSuppliersList()
+  ])
 
   // Nếu url có ?book_id=... thì tự động chọn sách đó vào dòng đầu
   const preSelectedBookId = route.query.book_id

@@ -41,6 +41,7 @@
         <ul class="nav flex-column ms-3 mt-1" v-show="openMenu.inventory">
           <li class="nav-item"><router-link to="/admin/inventory" class="nav-link text-muted py-2 small" active-class="text-primary fw-bold bg-light"><i class="bi bi-dash me-1"></i> Tồn kho</router-link></li>
           <li class="nav-item"><router-link to="/admin/stock-receipts" class="nav-link text-muted py-2 small" active-class="text-primary fw-bold bg-light"><i class="bi bi-dash me-1"></i> Phiếu nhập/xuất</router-link></li>
+          <li class="nav-item"><router-link to="/admin/suppliers" class="nav-link text-muted py-2 small" active-class="text-primary fw-bold bg-light"><i class="bi bi-dash me-1"></i> Nhà cung cấp</router-link></li>
         </ul>
       </li>
 
@@ -109,9 +110,9 @@ const openMenu = reactive({
 
 // Tự động mở menu con nếu đang truy cập vào trang thuộc nhóm đó
 watch(() => route.path, (newPath) => {
-  if (['/admin/books', '/admin/categories', '/admin/authors', '/admin/publishers'].includes(newPath)) openMenu.books = true
-  if (['/admin/inventory', '/admin/stock-receipts'].includes(newPath)) openMenu.inventory = true
-  if (['/admin/orders', '/admin/shipments'].includes(newPath)) openMenu.orders = true
+  if (newPath.startsWith('/admin/books') || ['/admin/categories', '/admin/authors', '/admin/publishers'].includes(newPath)) openMenu.books = true
+  if (['/admin/inventory', '/admin/suppliers'].includes(newPath) || newPath.startsWith('/admin/stock-receipts')) openMenu.inventory = true
+  if (newPath.startsWith('/admin/orders') || newPath.startsWith('/admin/shipments')) openMenu.orders = true
 }, { immediate: true })
 </script>
 

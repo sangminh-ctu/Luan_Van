@@ -1,0 +1,94 @@
+@baseUrl = http://localhost:5000/api
+# Thay thế chuỗi <admin_token> bằng Token thật của tài khoản Admin khi đăng nhập
+@adminToken = <admin_token>
+
+### 1. LẤY DANH SÁCH NHÀ CUNG CẤP (Phân trang, tìm kiếm, thống kê)
+GET {{baseUrl}}/admin/suppliers?page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+### 2. TÌM KIẾM NHÀ CUNG CẤP THEO TỪ KHÓA
+GET {{baseUrl}}/admin/suppliers?search=Fahasa
+Authorization: Bearer {{adminToken}}
+
+### 3. LỌC NHÀ CUNG CẤP ĐANG HỢP TÁC
+GET {{baseUrl}}/admin/suppliers?is_active=true
+Authorization: Bearer {{adminToken}}
+
+### 4. LẤY DANH SÁCH OPTIONS GỌN NHẸ CHO DROPDOWN LẬP PHIẾU
+GET {{baseUrl}}/admin/suppliers/options
+Authorization: Bearer {{adminToken}}
+
+### 5. LẤY CHI TIẾT 1 NHÀ CUNG CẤP THEO ID
+GET {{baseUrl}}/admin/suppliers/2
+Authorization: Bearer {{adminToken}}
+
+### 6. TẠO MỚI NHÀ CUNG CẤP (Thành công)
+POST {{baseUrl}}/admin/suppliers
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+    "supplier_name": "Công ty Cổ phần Văn hóa Phương Nam",
+    "contact_person": "Nguyễn Văn A",
+    "phone": "02838225446",
+    "email": "contact@phuongnam.com",
+    "address": "940 Đường 3/2, Phường 15, Quận 11, TP.HCM",
+    "note": "Nhà phân phối sách lớn"
+}
+
+### 7. KIỂM THỬ TRÙNG TÊN CHUẨN HÓA (409 Conflict)
+# Tên có chữ hoa, thường hoặc khoảng trắng thừa vẫn bị chặn
+POST {{baseUrl}}/admin/suppliers
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+    "supplier_name": "  công ty cổ phần văn hóa phương nam  ",
+    "phone": "0901234567"
+}
+
+### 8. KIỂM THỬ SAI ĐỊNH DẠNG SĐT (400 Bad Request)
+POST {{baseUrl}}/admin/suppliers
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+    "supplier_name": "Nhà cung cấp SĐT lỗi",
+    "phone": "12345"
+}
+
+### 9. KIỂM THỬ SAI ĐỊNH DẠNG EMAIL (400 Bad Request)
+POST {{baseUrl}}/admin/suppliers
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+    "supplier_name": "Nhà cung cấp Email lỗi",
+    "email": "abc-khong-hop-le"
+}
+
+### 10. CẬP NHẬT THÔNG TIN NHÀ CUNG CẤP
+PUT {{baseUrl}}/admin/suppliers/2
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+    "contact_person": "Phòng Kinh Doanh",
+    "phone": "1900636467",
+    "email": "cskh@fahasa.com.vn",
+    "address": "60-62 Lê Lợi, Quận 1, TP.HCM",
+    "is_active": true
+}
+
+### 11. BẬT / TẮT TRẠNG THÁI HỢP TÁC (NGỪNG HỢP TÁC)
+PUT {{baseUrl}}/admin/suppliers/2
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+    "is_active": false
+}
+
+### 12. XÓA NHÀ CUNG CẤP ĐÃ CÓ PHIẾU NHẬP (Chặn 409 Conflict)
+DELETE {{baseUrl}}/admin/suppliers/2
+Authorization: Bearer {{adminToken}}

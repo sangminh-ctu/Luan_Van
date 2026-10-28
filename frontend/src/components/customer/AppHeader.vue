@@ -1,15 +1,28 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useCartStore } from '@/stores/cartStore'
+import { useCategoryStore } from '@/stores/categoryStore'
 
 const authStore = useAuthStore()
 const cartStore = useCartStore()
+const categoryStore = useCategoryStore()
 const router = useRouter()
+const route = useRoute()
 
 const showAccountMenu = ref(false)
+const showCategoryDropdown = ref(false)
 const searchKeyword = ref('')
+const dropdownRef = ref(null)
+
+const currentCategoryId = computed(() => {
+  return route.query.category_id ? Number(route.query.category_id) : null
+})
+
+const isAllBooksActive = computed(() => {
+  return route.path === '/books' && !route.query.category_id
+})
 
 const handleSearch = () => {
   if (searchKeyword.value.trim()) {
@@ -17,8 +30,89 @@ const handleSearch = () => {
   }
 }
 
+const toggleCategoryDropdown = () => {
+  showCategoryDropdown.value = !showCategoryDropdown.value
+}
+
+const closeCategoryDropdown = () => {
+  showCategoryDropdown.value = false
+}
+
+const megaMenuRef = ref(null)
+const bottomBarRef = ref(null)
+const MAX_CHILDREN = 4
+const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1200)
+
+// Số cột theo màn hình: >=992px: 4, >=768px: 3, nhỏ hơn: 1
+const columnCount = computed(() => {
+  if (viewportWidth.value >= 992) return 4
+  if (viewportWidth.value >= 768) return 3
+  return 1
+})
+
+const columnClass = computed(() => {
+  if (columnCount.value === 4) return 'col-3'
+  if (columnCount.value === 3) return 'col-4'
+  return 'col-12'
+})
+
+// Chia danh mục vào các cột cân bằng theo "trọng lượng", giữ thứ tự A-Z theo chiều dọc
+const megaColumns = computed(() => {
+  const tree = categoryStore.categoryTree || []
+  const n = columnCount.value
+  const weightOf = (p) => {
+    const kids = p.children?.length || 0
+    return 1 + Math.min(kids, MAX_CHILDREN) + (kids > MAX_CHILDREN ? 1 : 0) + 0.5
+  }
+  const total = tree.reduce((s, p) => s + weightOf(p), 0)
+  const target = total / n
+  const columns = Array.from({ length: n }, () => [])
+  let col = 0
+  let acc = 0
+  for (const p of tree) {
+    const w = weightOf(p)
+    if (col < n - 1 && acc > 0 && acc + w / 2 > target) {
+      col++
+      acc = 0
+    }
+    columns[col].push(p)
+    acc += w
+  }
+  return columns.filter(c => c.length > 0)
+})
+
+const handleResize = () => {
+  viewportWidth.value = window.innerWidth
+}
+
+const handleClickOutside = (e) => {
+  const inButton = dropdownRef.value && dropdownRef.value.contains(e.target)
+  const inMenu = megaMenuRef.value && megaMenuRef.value.contains(e.target)
+  if (!inButton && !inMenu) {
+    showCategoryDropdown.value = false
+  }
+}
+
+const handleKeydown = (e) => {
+  if (e.key === 'Escape') showCategoryDropdown.value = false
+}
+
+watch(() => route.fullPath, () => {
+  showCategoryDropdown.value = false
+})
+
 onMounted(() => {
   cartStore.fetchCart()
+  categoryStore.fetchCategories()
+  document.addEventListener('click', handleClickOutside)
+  document.addEventListener('keydown', handleKeydown)
+  window.addEventListener('resize', handleResize)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('keydown', handleKeydown)
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 
@@ -39,21 +133,7 @@ onMounted(() => {
         </router-link>
 
         <!-- Search Area -->
-        <div class="flex-grow-1 mx-2 d-flex align-items-center gap-3">
-          
-          <!-- Icon Menu dạng lưới -->
-          <div class="d-flex align-items-center text-secondary custom-icon-btn px-2" style="cursor: pointer;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
-              <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
-              <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
-              <circle cx="17.5" cy="6.5" r="3.5"></circle>
-            </svg>
-            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor" class="ms-1" viewBox="0 0 16 16" style="margin-top: 2px;">
-              <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
-            </svg>
-          </div>
-
+        <div class="flex-grow-1 mx-2 d-flex align-items-center">
           <!-- Thanh Search -->
           <div class="flex-grow-1 position-relative d-flex align-items-center bg-white border border-secondary-subtle" style="border-radius: 8px; padding: 4px;">
             <input 
@@ -118,11 +198,20 @@ onMounted(() => {
                 <router-link to="/register" class="btn btn-outline-danger w-100 fw-bold" style="border-radius: 8px; color: #c92127; border-color: #c92127; background-color: white;">Đăng ký</router-link>
               </template>
               <template v-else>
-                <div class="text-center mb-3">
+                <div class="text-center mb-2">
                   <p class="mb-0 text-muted" style="font-size: 13px;">Xin chào,</p>
                   <h6 class="fw-bold mb-0 text-truncate" :title="authStore.user?.full_name">{{ authStore.user?.full_name }}</h6>
                 </div>
-                <hr class="mb-3">
+                <hr class="my-2">
+                <router-link
+                  to="/orders"
+                  class="btn btn-light w-100 mb-2 text-start d-flex align-items-center gap-2 fw-semibold text-dark"
+                  style="border-radius: 8px; font-size: 14px;"
+                  @click="showAccountMenu = false"
+                >
+                  <i class="bi bi-receipt text-danger"></i>
+                  <span>Đơn hàng của tôi</span>
+                </router-link>
                 <button @click="authStore.logout" class="btn btn-danger w-100 fw-bold" style="border-radius: 8px;">Đăng xuất</button>
               </template>
             </div>
@@ -133,22 +222,95 @@ onMounted(() => {
     </div>
 
     <!-- Bottombar (Danh Mục Menu) -->
-    <div class="bg-white shadow-sm">
+    <div class="bg-white shadow-sm position-relative" ref="bottomBarRef">
       <div class="container d-flex align-items-center">
-        <!-- Nút Danh mục -->
-        <div class="text-white px-3 py-2 fw-bold d-flex align-items-center gap-2" style="background-color: #c92127; border-top-left-radius: 8px; border-top-right-radius: 8px; cursor: pointer;">
-          <span>☰</span> DANH MỤC SẢN PHẨM <span class="ms-1">▼</span>
+        <!-- Nút Danh mục kèm Dropdown 2 cấp -->
+        <div class="position-relative" ref="dropdownRef">
+          <div 
+            class="text-white px-3 py-2 fw-bold d-flex align-items-center gap-2 user-select-none" 
+            style="background-color: #c92127; border-top-left-radius: 8px; border-top-right-radius: 8px; cursor: pointer; min-width: 220px;"
+            @click.stop="toggleCategoryDropdown"
+          >
+            <span>☰</span> DANH MỤC SẢN PHẨM 
+            <span class="ms-auto" style="font-size: 11px;">{{ showCategoryDropdown ? '▲' : '▼' }}</span>
+          </div>
+
+        </div>
+
+        <!-- Mega Menu đa cột (rộng bằng container, không kéo dài xuống) -->
+        <div
+          v-if="showCategoryDropdown"
+          ref="megaMenuRef"
+          class="position-absolute start-0 end-0 mx-auto bg-white shadow-lg rounded-bottom border-top mega-menu"
+          style="top: 100%; z-index: 1050;"
+        >
+          <div class="container py-3">
+            <div v-if="categoryStore.isLoading" class="p-3 text-center text-muted small">
+              <span class="spinner-border spinner-border-sm me-1 text-danger"></span>Đang tải danh mục...
+            </div>
+            <div v-else-if="categoryStore.categoryTree.length === 0" class="p-3 text-center text-muted small">
+              Chưa có danh mục nào.
+            </div>
+
+            <!-- Lưới cột cân bằng (Bootstrap) -->
+            <div v-else class="row g-4">
+              <div v-for="(column, colIdx) in megaColumns" :key="colIdx" :class="columnClass">
+                <div v-for="parent in column" :key="parent.category_id" class="mb-3">
+                  <router-link
+                    :to="`/books?category_id=${parent.category_id}`"
+                    class="d-inline-block text-decoration-none fw-bold small mb-1"
+                    :class="categoryStore.isParentOrSelfActive(parent.category_id, currentCategoryId) ? 'text-danger' : 'text-dark hover-danger'"
+                    @click="closeCategoryDropdown"
+                  >
+                    {{ parent.category_name }} <i class="bi bi-chevron-right" style="font-size: 10px;"></i>
+                  </router-link>
+
+                  <div v-if="parent.children?.length > 0" class="d-flex flex-column">
+                    <router-link
+                      v-for="child in parent.children.slice(0, MAX_CHILDREN)"
+                      :key="child.category_id"
+                      :to="`/books?category_id=${child.category_id}`"
+                      class="text-decoration-none small py-1 text-truncate"
+                      :class="currentCategoryId === child.category_id ? 'text-danger fw-bold' : 'text-secondary hover-danger'"
+                      :title="child.category_name"
+                      @click="closeCategoryDropdown"
+                    >
+                      {{ child.category_name }}
+                    </router-link>
+                    <router-link
+                      v-if="parent.children.length > MAX_CHILDREN"
+                      :to="`/books?category_id=${parent.category_id}`"
+                      class="text-decoration-none small text-primary py-1"
+                      @click="closeCategoryDropdown"
+                    >
+                      Xem tất cả
+                    </router-link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         
-        <!-- Navbar link -->
-        <nav class="d-flex gap-4 ms-4 overflow-auto py-2 flex-grow-1" style="font-size: 14px; white-space: nowrap;">
-          <a href="#" class="text-dark text-decoration-none fw-bold hover-danger">Sách Trong Nước</a>
-          <a href="#" class="text-secondary text-decoration-none hover-danger">Foreign Books</a>
-          <a href="#" class="text-secondary text-decoration-none hover-danger">VPP - Dụng Cụ Học Sinh</a>
-          <a href="#" class="text-secondary text-decoration-none hover-danger">Đồ Chơi</a>
-          <a href="#" class="text-secondary text-decoration-none hover-danger">Làm Đẹp - Sức Khỏe</a>
-          <a href="#" class="text-secondary text-decoration-none hover-danger">Sách Giáo Khoa</a>
-          <a href="#" class="text-secondary text-decoration-none hover-danger">Bách Hóa Online</a>
+        <!-- Navbar link (Tất cả sách + Tối đa 6 danh mục gốc) -->
+        <nav class="d-flex align-items-center gap-3 ms-3 overflow-auto py-2 flex-grow-1 scrollbar-none" style="font-size: 14px; white-space: nowrap;">
+          <router-link
+            to="/books"
+            class="text-decoration-none py-1 px-2 rounded fw-bold transition-all"
+            :class="isAllBooksActive ? 'text-danger fw-bolder border-bottom border-2 border-danger' : 'text-dark hover-danger'"
+          >
+            Tất Cả Sách
+          </router-link>
+
+          <router-link
+            v-for="cat in categoryStore.visibleTopCategories"
+            :key="cat.category_id"
+            :to="`/books?category_id=${cat.category_id}`"
+            class="text-decoration-none py-1 px-2 rounded transition-all"
+            :class="categoryStore.isParentOrSelfActive(cat.category_id, currentCategoryId) ? 'text-danger fw-bolder border-bottom border-2 border-danger' : 'text-secondary hover-danger'"
+          >
+            {{ cat.category_name }}
+          </router-link>
         </nav>
       </div>
     </div>
@@ -161,9 +323,8 @@ onMounted(() => {
 .custom-icon-btn { cursor: pointer; transition: color 0.2s; }
 .custom-icon-btn:hover { color: #c92127 !important; }
 
-/* Ẩn outline mặc định của input khi click */
-input.form-control:focus {
-  box-shadow: none !important;
-  outline: none !important;
-}
+.transition-all { transition: all 0.2s ease-in-out; }
+.mega-menu { max-height: 70vh; overflow-y: auto; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
 </style>

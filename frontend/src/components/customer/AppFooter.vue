@@ -27,14 +27,14 @@
           
           <!-- Cột 1: Thông tin công ty & Logo -->
           <div class="col-lg-4 border-end pe-4 mb-4 mb-lg-0">
-            <img src="../../assets/images/logo/logo1.png" alt="FAHASA" height="45" class="mb-3">
+            <img src="../../assets/images/logo/logo1.png" alt="MISA" height="45" class="mb-3">
             <p class="text-muted small lh-base mb-2">
-              Lầu 5, 387-389 Hai Bà Trưng, Phường Võ Thị Sáu, Quận 3, TP HCM<br>
-              Công Ty Cổ Phần Phát Hành Sách TP HCM - FAHASA<br>
-              60 - 62 Lê Lợi, Phường Bến Nghé, Quận 1, TP. HCM, Việt Nam
+              Lầu 5, 387-389 Long Châu, Vĩnh Long<br>
+              Công Ty Cổ Phần Phát Hành Sách Misa<br>
+              
             </p>
             <p class="text-muted small lh-base mb-3">
-              Fahasa.com nhận đặt hàng trực tuyến và giao hàng tận nơi. KHÔNG hỗ trợ đặt mua và nhận hàng trực tiếp tại văn phòng cũng như tất cả Hệ Thống Fahasa trên toàn quốc.
+              Misa.com nhận đặt hàng trực tuyến và giao hàng tận nơi. KHÔNG hỗ trợ đặt mua và nhận hàng trực tiếp tại văn phòng cũng như tất cả Hệ Thống Misa trên toàn quốc.
             </p>
             
             <!-- Mạng xã hội -->
@@ -98,13 +98,13 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 16 16">
                   <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
                 </svg>
-                60-62 Lê Lợi, Q.1, TP. HCM
+                112/6 Hoà Thạnh, Phú Quơí, Vĩnh Long
               </div>
               <div class="col-md-4 d-flex align-items-center mb-2 mb-md-0">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 16 16">
                   <path d="M.05 3.555A2 2 0 0 1 2 2h12a2 2 0 0 1 1.95 1.555L8 8.414.05 3.555ZM0 4.697v7.104l5.803-3.558L0 4.697ZM6.761 8.83l-6.57 4.027A2 2 0 0 0 2 14h12a2 2 0 0 0 1.808-1.144l-6.57-4.027L8 9.586l-1.239-.757Zm3.436-.586L16 11.801V4.697l-5.803 3.546Z"/>
                 </svg>
-                cskh@fahasa.com.vn
+                cskh@misa.com.vn
               </div>
               <div class="col-md-4 d-flex align-items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 16 16">

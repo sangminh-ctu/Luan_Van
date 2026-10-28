@@ -6,6 +6,7 @@ const {
     Inventory, 
     StockReceipt, 
     StockReceiptDetail,
+    Supplier,
     BookImage
 } = require('../../models/associations');
 
@@ -100,7 +101,7 @@ class InventoryService {
      * Hỗ trợ cờ auto_complete = true (Lưu & Hoàn tất trong cùng 1 transaction)
      */
     async createReceipt(data) {
-        const { type, supplier_name, note, details, auto_complete } = data;
+        const { type, supplier_id, note, details, auto_complete } = data;
 
         // 1. Validate loại phiếu
         if (!['import', 'export'].includes(type)) {
@@ -109,18 +110,40 @@ class InventoryService {
             throw err;
         }
 
-        // Với phiếu nhập, bắt buộc có thông tin Nhà cung cấp / Đối tác
-        if (type === 'import' && (!supplier_name || !supplier_name.trim())) {
-            const err = new Error('Phiếu nhập kho bắt buộc phải nhập Nhà cung cấp / Đối tác');
-            err.status = 400;
-            throw err;
-        }
+        let resolvedSupplierId = null;
+        let resolvedSupplierName = null;
 
-        // Với phiếu xuất, bắt buộc có ghi chú lý do xuất
-        if (type === 'export' && (!note || !note.trim())) {
-            const err = new Error('Phiếu xuất kho bắt buộc phải nhập lý do vào ô Ghi chú');
-            err.status = 400;
-            throw err;
+        // Với phiếu nhập, bắt buộc có thông tin Nhà cung cấp hợp lệ và đang hợp tác (is_active = true)
+        if (type === 'import') {
+            if (!supplier_id || !/^[1-9]\d*$/.test(String(supplier_id).trim())) {
+                const err = new Error('Phiếu nhập kho bắt buộc phải chọn Nhà cung cấp hợp lệ');
+                err.status = 400;
+                throw err;
+            }
+            const supId = parseInt(supplier_id, 10);
+            const supplier = await Supplier.findByPk(supId);
+            if (!supplier) {
+                const err = new Error('Nhà cung cấp không tồn tại trong hệ thống');
+                err.status = 404;
+                throw err;
+            }
+            if (!supplier.is_active) {
+                const err = new Error(`Nhà cung cấp "${supplier.supplier_name}" đã ngừng hợp tác, không thể lập phiếu nhập mới`);
+                err.status = 400;
+                throw err;
+            }
+            resolvedSupplierId = supId;
+            resolvedSupplierName = supplier.supplier_name; // Snapshot từ DB, bỏ qua client gửi
+        } else {
+            // Phiếu xuất: Tuyệt đối không gắn nhà cung cấp
+            resolvedSupplierId = null;
+            resolvedSupplierName = null;
+
+            if (!note || !note.trim()) {
+                const err = new Error('Phiếu xuất kho bắt buộc phải nhập lý do vào ô Ghi chú');
+                err.status = 400;
+                throw err;
+            }
         }
 
         // 2. Validate danh sách chi tiết sách
@@ -191,7 +214,8 @@ class InventoryService {
                     newReceipt = await StockReceipt.create({
                         receipt_code: receiptCode,
                         type,
-                        supplier_name: type === 'import' ? (supplier_name ? supplier_name.trim() : null) : null,
+                        supplier_id: resolvedSupplierId,
+                        supplier_name: resolvedSupplierName,
                         note: note ? note.trim() : null,
                         total_cost: totalCost,
                         status: auto_complete ? 'completed' : 'pending',
@@ -343,6 +367,9 @@ class InventoryService {
         const where = {};
         if (query.type) where.type = query.type;
         if (query.status) where.status = query.status;
+        if (query.supplier_id && /^[1-9]\d*$/.test(String(query.supplier_id).trim())) {
+            where.supplier_id = parseInt(query.supplier_id, 10);
+        }
         if (query.search) {
             where[Op.or] = [
                 { receipt_code: { [Op.iLike]: `%${query.search.trim()}%` } },
@@ -355,6 +382,11 @@ class InventoryService {
         const { rows, count } = await StockReceipt.findAndCountAll({
             where,
             include: [
+                {
+                    model: Supplier,
+                    as: 'supplier',
+                    attributes: ['supplier_id', 'supplier_name', 'contact_person', 'phone', 'email', 'is_active']
+                },
                 {
                     model: StockReceiptDetail,
                     as: 'details',
@@ -386,6 +418,11 @@ class InventoryService {
     async getReceiptById(receiptId) {
         return await StockReceipt.findByPk(receiptId, {
             include: [
+                {
+                    model: Supplier,
+                    as: 'supplier',
+                    attributes: ['supplier_id', 'supplier_name', 'contact_person', 'phone', 'email', 'address', 'is_active']
+                },
                 {
                     model: StockReceiptDetail,
                     as: 'details',

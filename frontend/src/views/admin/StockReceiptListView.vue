@@ -26,17 +26,25 @@
     <div class="card border-0 shadow-sm rounded-4 mb-4">
       <div class="card-body p-3">
         <div class="row g-2 align-items-center">
-          <div class="col-md-5">
+          <div class="col-md-3">
             <div class="input-group">
               <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
               <input 
                 type="text" 
                 class="form-control border-start-0 ps-0 shadow-none" 
                 v-model="filters.search" 
-                placeholder="Tìm theo mã phiếu, nhà cung cấp, ghi chú..."
+                placeholder="Tìm mã phiếu, ghi chú..."
                 @keyup.enter="handleSearch"
               >
             </div>
+          </div>
+          <div class="col-md-3">
+            <select class="form-select shadow-none" v-model="filters.supplier_id" @change="handleSearch">
+              <option value="">Tất cả Nhà cung cấp</option>
+              <option v-for="s in suppliersList" :key="s.supplier_id" :value="s.supplier_id">
+                {{ s.supplier_name }}
+              </option>
+            </select>
           </div>
           <div class="col-md-2">
             <select class="form-select shadow-none" v-model="filters.type" @change="handleSearch">
@@ -45,12 +53,12 @@
               <option value="export">Phiếu Xuất kho</option>
             </select>
           </div>
-          <div class="col-md-3">
+          <div class="col-md-2">
             <select class="form-select shadow-none" v-model="filters.status" @change="handleSearch">
               <option value="">Tất cả trạng thái</option>
               <option value="pending">Chờ duyệt (Pending)</option>
-              <option value="completed">Đã hoàn thành (Completed)</option>
-              <option value="cancelled">Đã hủy (Cancelled)</option>
+              <option value="completed">Đã hoàn thành</option>
+              <option value="cancelled">Đã hủy</option>
             </select>
           </div>
           <div class="col-md-2 d-flex gap-2">
@@ -234,6 +242,18 @@
                   <strong :class="selectedReceipt?.type === 'import' ? 'text-primary' : 'text-dark'">
                     {{ selectedReceipt?.type === 'import' ? (selectedReceipt?.supplier_name || 'Không xác định') : 'Xuất kho nội bộ' }}
                   </strong>
+                  <!-- Thông tin liên hệ nếu có -->
+                  <div v-if="selectedReceipt?.supplier" class="small text-muted mt-1 ps-2 border-start">
+                    <div v-if="selectedReceipt.supplier.contact_person">
+                      <i class="bi bi-person me-1"></i>Liên hệ: {{ selectedReceipt.supplier.contact_person }}
+                    </div>
+                    <div v-if="selectedReceipt.supplier.phone">
+                      <i class="bi bi-telephone me-1"></i>SĐT: {{ selectedReceipt.supplier.phone }}
+                    </div>
+                    <div v-if="selectedReceipt.supplier.email">
+                      <i class="bi bi-envelope me-1"></i>Email: {{ selectedReceipt.supplier.email }}
+                    </div>
+                  </div>
                 </div>
                 <div class="col-sm-6">
                   <span class="text-secondary d-inline-block" style="width: 110px;">Trạng thái:</span>
@@ -374,9 +394,12 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { inventoryService } from '@/services/adminService'
+import { useRoute } from 'vue-router'
+import { inventoryService, supplierService } from '@/services/adminService'
 
+const route = useRoute()
 const receipts = ref([])
+const suppliersList = ref([])
 const isLoading = ref(false)
 const isSubmitting = ref(false)
 const alertMsg = ref('')
@@ -394,6 +417,7 @@ const cancelReason = ref('')
 
 const filters = reactive({
   search: '',
+  supplier_id: '',
   type: '',
   status: '',
   page: 1,
@@ -406,6 +430,14 @@ const pagination = reactive({
   limit: 10,
   totalPages: 1
 })
+
+const fetchSuppliers = async () => {
+  try {
+    suppliersList.value = await supplierService.getOptions()
+  } catch (e) {
+    console.error('Lỗi tải danh mục nhà cung cấp:', e)
+  }
+}
 
 const fetchReceipts = async () => {
   try {
@@ -430,6 +462,7 @@ const handleSearch = () => {
 
 const resetFilter = () => {
   filters.search = ''
+  filters.supplier_id = ''
   filters.type = ''
   filters.status = ''
   filters.page = 1
@@ -534,7 +567,16 @@ const getStatusText = (status) => {
   return status
 }
 
-onMounted(() => {
-  fetchReceipts()
+onMounted(async () => {
+  if (route.query.supplier_id) {
+    filters.supplier_id = route.query.supplier_id
+  }
+  if (route.query.type) {
+    filters.type = route.query.type
+  }
+  await Promise.all([
+    fetchSuppliers(),
+    fetchReceipts()
+  ])
 })
 </script>

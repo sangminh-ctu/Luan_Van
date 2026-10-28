@@ -263,6 +263,16 @@
                 </select>
               </div>
 
+              <div class="mb-3">
+                <label class="form-label fw-bold text-secondary small">Nhà cung cấp</label>
+                <select class="form-select" v-model="form.supplier_id">
+                  <option :value="null">-- Chưa chọn --</option>
+                  <option v-for="sup in suppliersList" :key="sup.supplier_id" :value="sup.supplier_id">
+                    {{ sup.supplier_name }}{{ sup.is_active === false ? ' (Ngừng hợp tác)' : '' }}
+                  </option>
+                </select>
+              </div>
+
               <div class="form-check form-switch pt-2">
                 <input class="form-check-input" type="checkbox" role="switch" id="activeSwitch" v-model="form.is_active">
                 <label class="form-check-label fw-bold small text-secondary" for="activeSwitch">Hiển thị bán trên website</label>
@@ -376,7 +386,8 @@ import {
   bookService, 
   categoryService, 
   authorService, 
-  publisherService 
+  publisherService,
+  supplierService
 } from '@/services/adminService'
 
 const route = useRoute()
@@ -391,6 +402,7 @@ const alertMsg = ref('')
 const categoriesList = ref([])
 const authorsList = ref([])
 const publishersList = ref([])
+const suppliersList = ref([])
 
 // Form state
 const form = reactive({
@@ -408,6 +420,7 @@ const form = reactive({
   height: null,
   category_id: '',
   publisher_id: null,
+  supplier_id: null,
   is_active: true,
   authors: [{ author_id: '', role: 'author', searchKeyword: '', showDropdown: false }],
   images: []
@@ -557,14 +570,16 @@ const getImageUrl = (url) => {
 // Load dropdowns
 const loadDropdowns = async () => {
   try {
-    const [cats, auths, pubs] = await Promise.all([
+    const [cats, auths, pubs, sups] = await Promise.all([
       categoryService.getAll(),
       authorService.getAll(),
-      publisherService.getAll()
+      publisherService.getAll(),
+      supplierService.getOptions()
     ])
     categoriesList.value = cats
     authorsList.value = auths
     publishersList.value = pubs
+    suppliersList.value = Array.isArray(sups) ? sups : (sups?.suppliers || sups?.data || [])
   } catch (error) {
     console.error('Lỗi tải danh mục dropdown:', error)
   }
@@ -588,6 +603,11 @@ const loadBookDetails = async (id) => {
     form.height = book.height
     form.category_id = book.category_id
     form.publisher_id = book.publisher_id
+    form.supplier_id = book.supplier_id || null
+    // Giữ NCC hiện tại trong ô chọn kể cả khi đã ngừng hợp tác (tránh mất khi lưu)
+    if (book.supplier && !suppliersList.value.some(s => s.supplier_id === book.supplier.supplier_id)) {
+      suppliersList.value.push(book.supplier)
+    }
     form.is_active = book.is_active
 
     // Map tác giả
@@ -643,7 +663,11 @@ const handleSubmit = async () => {
       await bookService.create(payload)
     }
 
-    router.push('/admin/books')
+    // Truyền thông báo thành công sang trang danh sách qua history state
+    router.push({
+      path: '/admin/books',
+      state: { flash: `Đã ${isEditMode.value ? 'cập nhật' : 'thêm'} sách "${form.title.trim()}" thành công!` }
+    })
   } catch (error) {
     alertMsg.value = error.response?.data?.message || 'Lỗi lưu thông tin sách: ' + error.message
   } finally {

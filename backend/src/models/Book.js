@@ -18,6 +18,7 @@ const Book = sequelize.define('Book', {
     height: { type: DataTypes.DECIMAL(6, 2) },
     category_id: { type: DataTypes.INTEGER, allowNull: false },
     publisher_id: { type: DataTypes.INTEGER, allowNull: true },
+    supplier_id: { type: DataTypes.INTEGER, allowNull: true },
     is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
     created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
 }, {

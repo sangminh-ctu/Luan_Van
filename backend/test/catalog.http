@@ -1,36 +1,43 @@
-﻿@baseUrl = http://localhost:5000/api
-# Thay thế chuỗi <token_cua_admin_o_day> bằng Token thật của tài khoản Admin khi bạn đăng nhập
-@adminToken = <token_cua_admin_o_day>
+@baseUrl = http://localhost:5000/api
 
-### 1. LẤY DANH SÁCH THỂ LOẠI
-GET {{baseUrl}}/admin/categories
-Authorization: Bearer {{adminToken}}
+### 1. LẤY CÂY DANH MỤC CÔNG KHAI
+GET {{baseUrl}}/categories
 
-### 2. TẠO THỂ LOẠI MỚI (Cha)
-POST {{baseUrl}}/admin/categories
-Authorization: Bearer {{adminToken}}
-Content-Type: application/json
+### 2. LẤY DANH SÁCH LỰA CHỌN BỘ LỌC (NXB, Tác giả, Hình thức bìa)
+GET {{baseUrl}}/books/filters
 
-{
-    "category_name": "Công Nghệ Thông Tin"
-}
+### 3. LẤY TẤT CẢ SÁCH (Mặc định limit=12, sort=newest)
+GET {{baseUrl}}/books?page=1&limit=12&sort=newest
 
-### 3. TẠO TÁC GIẢ MỚI
-POST {{baseUrl}}/admin/authors
-Authorization: Bearer {{adminToken}}
-Content-Type: application/json
+### 4. LỌC THEO DANH MỤC CHA (Bao gồm cả sách danh mục con)
+GET {{baseUrl}}/books?category_id=1
 
-{
-    "author_name": "Ngô Bảo Châu",
-    "bio": "Giáo sư toán học"
-}
+### 5. LỌC KHOẢNG GIÁ SAU GIẢM (100.000đ - 200.000đ)
+GET {{baseUrl}}/books?min_price=100000&max_price=200000
 
-### 4. TẠO NHÀ XUẤT BẢN MỚI
-POST {{baseUrl}}/admin/publishers
-Authorization: Bearer {{adminToken}}
-Content-Type: application/json
+### 6. LỌC KẾT HỢP NHIỀU ĐIỀU KIỆN (Danh mục + Khoảng giá + Còn hàng + Sắp xếp giá tăng dần)
+GET {{baseUrl}}/books?category_id=1&min_price=50000&max_price=300000&in_stock=true&sort=price_asc
 
-{
-    "publisher_name": "NXB Kim Đồng",
-    "address": "Hà Nội"
-}
+### 7. LỌC THEO TÁC GIẢ (Sách nhiều tác giả chỉ xuất hiện 1 lần)
+GET {{baseUrl}}/books?author_id=1
+
+### 8. LỌC THEO NHÀ XUẤT BẢN & HÌNH THỨC BÌA
+GET {{baseUrl}}/books?publisher_id=1&cover_type=Bìa%20mềm
+
+### 9. KIỂM THỬ THAM SỐ LỖI 400: min_price > max_price
+GET {{baseUrl}}/books?min_price=300000&max_price=100000
+
+### 10. KIỂM THỬ THAM SỐ LỖI 400: limit không hợp lệ
+GET {{baseUrl}}/books?limit=9999
+
+### 11. KIỂM THỬ THAM SỐ LỖI 400: sort không hợp lệ
+GET {{baseUrl}}/books?sort=abc
+
+### 12. KIỂM THỬ THAM SỐ LỖI 400: page không hợp lệ
+GET {{baseUrl}}/books?page=-1
+
+### 13. KIỂM THỬ THAM SỐ LỖI 400: category_id không hợp lệ
+GET {{baseUrl}}/books?category_id=abc
+
+### 14. TRANG VƯỢT QUÁ TỔNG SỐ TRANG (page=999 -> books rỗng, total giữ nguyên)
+GET {{baseUrl}}/books?page=999

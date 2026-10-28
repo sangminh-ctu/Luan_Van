@@ -28,22 +28,30 @@ app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/categories', require('./routes/customer/category.routes'));
 app.use('/api/books', require('./routes/customer/book.routes'));
 app.use('/api/cart', require('./routes/customer/cart.routes'));
+app.use('/api/addresses', require('./routes/customer/address.routes'));
+app.use('/api/orders', require('./routes/customer/order.routes'));
 
 // Admin Routes
 app.use('/api/admin/categories', verifyToken, requireAdmin, require('./routes/admin/category.routes'));
 app.use('/api/admin/authors', verifyToken, requireAdmin, require('./routes/admin/author.routes'));
 app.use('/api/admin/publishers', verifyToken, requireAdmin, require('./routes/admin/publisher.routes'));
+app.use('/api/admin/suppliers', verifyToken, requireAdmin, require('./routes/admin/supplier.routes'));
 app.use('/api/admin/books', verifyToken, requireAdmin, require('./routes/admin/book.routes'));
+app.use('/api/admin/orders', verifyToken, requireAdmin, require('./routes/admin/order.routes'));
 app.use('/api/admin', verifyToken, requireAdmin, require('./routes/admin/inventory.routes'));
 
 // Global Error Handler
 app.use((err, req, res, next) => {
     console.error(err.stack || err);
     const status = err.status || err.statusCode || 500;
-    res.status(status).json({ 
-        message: err.message || 'Đã có lỗi xảy ra', 
-        error: err.message 
-    });
+    const responseBody = {
+        message: err.message || 'Đã có lỗi xảy ra',
+        error: err.message
+    };
+    if (err.outOfStockItems) {
+        responseBody.out_of_stock_items = err.outOfStockItems;
+    }
+    res.status(status).json(responseBody);
 });
 
 module.exports = app;

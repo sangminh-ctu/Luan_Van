@@ -21,6 +21,15 @@ export const publisherService = {
     delete: (id) => api.delete(`/admin/publishers/${id}`).then(res => res.data)
 };
 
+export const supplierService = {
+    getAll: (params) => api.get('/admin/suppliers', { params }).then(res => res.data),
+    getOptions: () => api.get('/admin/suppliers/options').then(res => res.data),
+    getById: (id) => api.get(`/admin/suppliers/${id}`).then(res => res.data),
+    create: (data) => api.post('/admin/suppliers', data).then(res => res.data),
+    update: (id, data) => api.put(`/admin/suppliers/${id}`, data).then(res => res.data),
+    delete: (id) => api.delete(`/admin/suppliers/${id}`).then(res => res.data)
+};
+
 export const bookService = {
     getAll: (params) => api.get('/admin/books', { params }).then(res => res.data),
     getById: (id) => api.get(`/admin/books/${id}`).then(res => res.data),

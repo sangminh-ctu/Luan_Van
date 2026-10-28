@@ -54,12 +54,13 @@ exports.createBook = async (req, res) => {
         const newBook = await bookService.createBook(req.body);
         res.status(201).json(newBook);
     } catch (error) {
+        if (error.status === 400) return res.status(400).json({ message: error.message });
         // Bắt lỗi trùng lặp ISBN hoặc lỗi khóa ngoại
         if (error.name === 'SequelizeUniqueConstraintError') {
             return res.status(409).json({ message: 'Mã ISBN đã tồn tại trong hệ thống' });
         }
         if (error.name === 'SequelizeForeignKeyConstraintError') {
-            return res.status(400).json({ message: 'Thể loại hoặc Nhà xuất bản không tồn tại' });
+            return res.status(400).json({ message: 'Thể loại, Nhà xuất bản hoặc Nhà cung cấp không tồn tại' });
         }
         res.status(500).json({ message: 'Lỗi tạo sách: ' + error.message });
     }
@@ -87,8 +88,12 @@ exports.updateBook = async (req, res) => {
         res.json(updatedBook);
     } catch (error) {
         if (error.status === 404) return res.status(404).json({ message: error.message });
+        if (error.status === 400) return res.status(400).json({ message: error.message });
         if (error.name === 'SequelizeUniqueConstraintError') {
             return res.status(409).json({ message: 'Mã ISBN đã tồn tại trong hệ thống' });
+        }
+        if (error.name === 'SequelizeForeignKeyConstraintError') {
+            return res.status(400).json({ message: 'Thể loại, Nhà xuất bản hoặc Nhà cung cấp không tồn tại' });
         }
         if (error.message?.includes('book_discount_percent_check') || error.parent?.message?.includes('book_discount_percent_check')) {
             return res.status(400).json({ message: 'Phần trăm giảm giá không hợp lệ (phải từ 0% đến 100%)' });
@@ -105,6 +110,7 @@ exports.toggleActive = async (req, res) => {
         res.json({ message: `Đã ${book.is_active ? 'kích hoạt hiển thị' : 'ẩn'} sách thành công`, book });
     } catch (error) {
         if (error.status === 404) return res.status(404).json({ message: error.message });
+        if (error.status === 400) return res.status(400).json({ message: error.message });
         res.status(500).json({ message: 'Lỗi đổi trạng thái sách: ' + error.message });
     }
 };
@@ -116,7 +122,10 @@ exports.deleteBook = async (req, res) => {
         res.json(result);
     } catch (error) {
         if (error.status === 404) return res.status(404).json({ message: error.message });
-        if (error.name === 'SequelizeForeignKeyConstraintError' || error.parent?.code === '23503') {
+        if (error.status === 400) return res.status(400).json({ message: error.message });
+        // 23503: foreign_key_violation (NO ACTION) | 23001: restrict_violation (ON DELETE RESTRICT)
+        const pgCode = error.parent?.code || error.original?.code;
+        if (error.name === 'SequelizeForeignKeyConstraintError' || pgCode === '23503' || pgCode === '23001') {
             return res.status(409).json({ 
                 message: 'Không thể xóa vĩnh viễn: Sách này đã phát sinh giao dịch (đơn hàng hoặc phiếu nhập xuất). Vui lòng dùng tính năng Ẩn sách.' 
             });

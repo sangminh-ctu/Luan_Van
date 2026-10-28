@@ -5,12 +5,29 @@ const {
     Category, 
     Author, 
     Publisher, 
+    Supplier,
     BookAuthor, 
     BookImage, 
     Inventory 
 } = require('../../models/associations');
 
 class BookService {
+    /**
+     * Kiểm tra nhà cung cấp tồn tại và đang hợp tác (dùng khi gán mới / đổi NCC)
+     */
+    async assertActiveSupplier(supplierId, transaction) {
+        const supplier = await Supplier.findByPk(supplierId, { transaction });
+        if (!supplier) {
+            const err = new Error('Nhà cung cấp không tồn tại');
+            err.status = 400;
+            throw err;
+        }
+        if (!supplier.is_active) {
+            const err = new Error(`Nhà cung cấp "${supplier.supplier_name}" đã ngừng hợp tác, vui lòng chọn nhà cung cấp khác`);
+            err.status = 400;
+            throw err;
+        }
+    }
     /**
      * Lấy danh sách sách có phân trang, tìm kiếm và lọc
      */
@@ -99,6 +116,7 @@ class BookService {
             include: [
                 { model: Category, as: 'category' },
                 { model: Publisher, as: 'publisher' },
+                { model: Supplier, as: 'supplier', attributes: ['supplier_id', 'supplier_name', 'is_active'] },
                 { 
                     model: BookAuthor, 
                     as: 'book_authors',
@@ -121,8 +139,12 @@ class BookService {
                 title, isbn, cover_type, price, discount_percent,
                 description, publication_year, page_count, weight,
                 length, width, height,
-                category_id, publisher_id, authors, images
+                category_id, publisher_id, supplier_id, authors, images
             } = data;
+
+            if (supplier_id) {
+                await this.assertActiveSupplier(parseInt(supplier_id, 10), transaction);
+            }
 
             // 1. Tạo bản ghi Sách
             const newBook = await Book.create({
@@ -140,6 +162,7 @@ class BookService {
                 height: height !== undefined && height !== null && height !== '' ? parseFloat(height) : null,
                 category_id: parseInt(category_id, 10),
                 publisher_id: publisher_id ? parseInt(publisher_id, 10) : null,
+                supplier_id: supplier_id ? parseInt(supplier_id, 10) : null,
                 is_active: true
             }, { transaction });
 
@@ -211,8 +234,13 @@ class BookService {
                 title, isbn, cover_type, price, discount_percent,
                 description, publication_year, page_count, weight,
                 length, width, height,
-                category_id, publisher_id, is_active, authors, images
+                category_id, publisher_id, supplier_id, is_active, authors, images
             } = data;
+
+            // Chỉ kiểm tra khi gán mới / đổi NCC; giữ nguyên NCC cũ (kể cả đã ngừng hợp tác) vẫn cho lưu
+            if (supplier_id && parseInt(supplier_id, 10) !== book.supplier_id) {
+                await this.assertActiveSupplier(parseInt(supplier_id, 10), transaction);
+            }
 
             // 1. Cập nhật thông tin cơ bản
             await book.update({
@@ -230,6 +258,7 @@ class BookService {
                 height: height !== undefined ? (height !== null && height !== '' ? parseFloat(height) : null) : book.height,
                 category_id: category_id !== undefined ? parseInt(category_id, 10) : book.category_id,
                 publisher_id: publisher_id !== undefined ? (publisher_id ? parseInt(publisher_id, 10) : null) : book.publisher_id,
+                supplier_id: supplier_id !== undefined ? (supplier_id ? parseInt(supplier_id, 10) : null) : book.supplier_id,
                 is_active: is_active !== undefined ? is_active : book.is_active
             }, { transaction });
 

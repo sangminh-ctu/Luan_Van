@@ -160,7 +160,7 @@
                 <div class="col-sm-6">
                   <div class="mb-1">
                     Nhà cung cấp: 
-                    <strong class="text-primary fw-semibold">{{ book.publisher?.publisher_name || 'Đang cập nhật' }}</strong>
+                    <strong class="text-primary fw-semibold">{{ book.supplier?.supplier_name || 'Đang cập nhật' }}</strong>
                   </div>
                   <div>
                     Nhà xuất bản: 
@@ -274,7 +274,7 @@
                     </tr>
                     <tr class="border-bottom">
                       <td class="text-secondary py-2">Tên Nhà Cung Cấp</td>
-                      <td class="text-primary py-2">{{ book.publisher?.publisher_name || 'Đang cập nhật' }}</td>
+                      <td class="text-primary py-2">{{ book.supplier?.supplier_name || 'Đang cập nhật' }}</td>
                     </tr>
                     <tr class="border-bottom">
                       <td class="text-secondary py-2">Tác giả</td>
@@ -794,16 +794,16 @@ async function handleAddToCart() {
   }
 }
 
-// Mua ngay
+// Mua ngay (Chuyển thẳng tới trang Thanh toán /checkout với đúng cuốn sách này)
 async function handleBuyNow() {
   if (isOutOfStock.value || isAddingCart.value) return;
 
   try {
     isAddingCart.value = true;
-    const result = await cartStore.addToCart(book.value.book_id, quantity.value);
+    const result = await cartStore.buyNow(book.value.book_id, quantity.value);
     
     if (result.success) {
-      router.push('/cart');
+      router.push('/checkout');
     } else if (result.message) {
       triggerToast(result.message, 'error');
     }

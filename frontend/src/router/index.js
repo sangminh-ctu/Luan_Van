@@ -7,18 +7,23 @@ import AdminLayout from '@/layouts/AdminLayout.vue'
 
 // Views
 import HomeView from '@/views/customer/HomeView.vue'
+import CustomerBookListView from '@/views/customer/BookListView.vue'
 import BookDetailView from '@/views/customer/BookDetailView.vue'
 import CartView from '@/views/customer/CartView.vue'
 import CheckoutView from '@/views/customer/CheckoutView.vue'
+import OrderTrackingView from '@/views/customer/OrderTrackingView.vue'
 import DashboardView from '@/views/admin/DashboardView.vue'
 import BookListView from '@/views/admin/BookListView.vue'
 import BookFormView from '@/views/admin/BookFormView.vue'
 import CategoryView from '@/views/admin/CategoryView.vue'
 import AuthorView from '@/views/admin/AuthorView.vue'
 import PublisherView from '@/views/admin/PublisherView.vue'
+import SupplierView from '@/views/admin/SupplierView.vue'
 import InventoryView from '@/views/admin/InventoryView.vue'
 import StockReceiptListView from '@/views/admin/StockReceiptListView.vue'
 import StockReceiptFormView from '@/views/admin/StockReceiptFormView.vue'
+import OrderListView from '@/views/admin/OrderListView.vue'
+import OrderDetailView from '@/views/admin/OrderDetailView.vue'
 import AuthView from '@/views/auth/AuthView.vue'
 import AdminLoginView from '@/views/auth/AdminLoginView.vue'
 
@@ -36,9 +41,11 @@ const router = createRouter({
       component: CustomerLayout,
       children: [
         { path: '', name: 'home', component: HomeView },
+        { path: 'books', name: 'customer-books', component: CustomerBookListView },
         { path: 'books/:id', name: 'book-detail', component: BookDetailView },
         { path: 'cart', name: 'cart', component: CartView, meta: { requiresAuth: true } },
-        { path: 'checkout', name: 'checkout', component: CheckoutView, meta: { requiresAuth: true } }
+        { path: 'checkout', name: 'checkout', component: CheckoutView, meta: { requiresAuth: true } },
+        { path: 'orders', name: 'customer-orders', component: OrderTrackingView, meta: { requiresAuth: true } }
       ]
     },
 
@@ -56,10 +63,12 @@ const router = createRouter({
         { path: 'authors', name: 'admin-authors', component: AuthorView },
         { path: 'publishers', name: 'admin-publishers', component: PublisherView },
         { path: 'inventory', name: 'admin-inventory', component: InventoryView },
+        { path: 'suppliers', name: 'admin-suppliers', component: SupplierView },
         { path: 'stock-receipts', name: 'admin-stock-receipts', component: StockReceiptListView },
         { path: 'stock-receipts/create', name: 'admin-stock-receipts-create', component: StockReceiptFormView },
-        { path: 'orders', name: 'admin-orders', component: DashboardView },
-        { path: 'shipments', name: 'admin-shipments', component: DashboardView },
+        { path: 'orders', name: 'admin-orders', component: OrderListView },
+        { path: 'orders/:id', name: 'admin-order-detail', component: OrderDetailView },
+        { path: 'shipments', name: 'admin-shipments', component: OrderListView },
         { path: 'users', name: 'admin-users', component: DashboardView },
         { path: 'vouchers', name: 'admin-vouchers', component: DashboardView },
       ]

@@ -12,7 +12,7 @@
     </div>
 
     <!-- Thông báo lỗi / thành công -->
-    <div v-if="alertMsg" class="alert alert-info alert-dismissible fade show shadow-sm" role="alert">
+    <div v-if="alertMsg" class="alert alert-dismissible fade show shadow-sm" :class="alertType === 'success' ? 'alert-success' : alertType === 'error' ? 'alert-danger' : 'alert-info'" role="alert">
       {{ alertMsg }}
       <button type="button" class="btn-close" @click="alertMsg = ''"></button>
     </div>
@@ -203,6 +203,12 @@ const books = ref([])
 const categories = ref([])
 const isLoading = ref(false)
 const alertMsg = ref('')
+const alertType = ref('info')
+
+const showAlert = (msg, type = 'info') => {
+  alertMsg.value = msg
+  alertType.value = type
+}
 
 const filters = reactive({
   search: '',
@@ -266,9 +272,9 @@ const toggleStatus = async (book) => {
     const nextStatus = !book.is_active
     await bookService.toggleActive(book.book_id, nextStatus)
     book.is_active = nextStatus
-    alertMsg.value = `Đã ${nextStatus ? 'hiển thị' : 'ẩn'} cuốn sách: "${book.title}"`
+    showAlert(`Đã ${nextStatus ? 'hiển thị' : 'ẩn'} cuốn sách: "${book.title}"`, 'success')
   } catch (error) {
-    alertMsg.value = 'Lỗi cập nhật trạng thái: ' + (error.response?.data?.message || error.message)
+    showAlert('Lỗi cập nhật trạng thái: ' + (error.response?.data?.message || error.message), 'error')
     // Hoàn tác lại trạng thái UI nếu lỗi
     book.is_active = !book.is_active
   }
@@ -279,10 +285,10 @@ const deleteBook = async (id) => {
   if (!confirm('Bạn có chắc chắn muốn xóa cuốn sách này? Lưu ý: Nếu sách đã có đơn hàng hoặc phiếu nhập xuất, bạn sẽ không thể xóa.')) return
   try {
     await bookService.delete(id)
-    alertMsg.value = 'Đã xóa sách thành công!'
+    showAlert('Đã xóa sách thành công!', 'success')
     await fetchBooks()
   } catch (error) {
-    alertMsg.value = error.response?.data?.message || 'Lỗi xóa sách: ' + error.message
+    showAlert(error.response?.data?.message || 'Lỗi xóa sách: ' + error.message, 'error')
   }
 }
 
@@ -313,6 +319,12 @@ const formatCurrency = (val) => {
 }
 
 onMounted(() => {
+  // Nhận thông báo thành công từ form Thêm/Sửa sách
+  const flash = window.history.state?.flash
+  if (flash) {
+    showAlert(flash, 'success')
+    window.history.replaceState({ ...window.history.state, flash: null }, '')
+  }
   fetchCategories()
   fetchBooks()
 })

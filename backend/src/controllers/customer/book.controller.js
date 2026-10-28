@@ -9,6 +9,15 @@ exports.getBooks = async (req, res, next) => {
     }
 };
 
+exports.getFilterOptions = async (req, res, next) => {
+    try {
+        const filters = await catalogService.getFilterOptions();
+        res.status(200).json(filters);
+    } catch (error) {
+        next(error);
+    }
+};
+
 exports.getBookById = async (req, res, next) => {
     try {
         const bookId = parseInt(req.params.id, 10);

@@ -230,6 +230,39 @@ export const useCartStore = defineStore('cart', () => {
         return selectedBookIds.value.includes(Number(bookId));
     }
 
+    async function buyNow(bookId, quantity = 1) {
+        const authStore = useAuthStore();
+        if (!authStore.isLoggedIn) {
+            router.push({ path: '/login', query: { redirect: router.currentRoute.value.fullPath } });
+            return { success: false, requireLogin: true };
+        }
+
+        if (authStore.isAdmin) {
+            return { success: false, message: 'Tài khoản Quản trị viên không thể mua hàng.' };
+        }
+
+        try {
+            isLoading.value = true;
+            const parsedId = Number(bookId);
+            const alreadyInCart = items.value.some(i => Number(i.book_id) === parsedId);
+
+            const res = alreadyInCart
+                ? await cartService.updateQuantity(parsedId, quantity)
+                : await cartService.addToCart(parsedId, quantity);
+
+            // Chỉ tích chọn duy nhất cuốn sách vừa bấm "Mua ngay" để thanh toán
+            selectedBookIds.value = [parsedId];
+            hasInitializedSelection.value = true;
+            applyCartState(res.cart);
+            return { success: true };
+        } catch (error) {
+            const msg = error.response?.data?.message || error.message;
+            return { success: false, message: msg };
+        } finally {
+            isLoading.value = false;
+        }
+    }
+
     function clearLocalCart() {
         items.value = [];
         summary.value = {
@@ -266,6 +299,7 @@ export const useCartStore = defineStore('cart', () => {
         loadError,
         fetchCart,
         addToCart,
+        buyNow,
         updateQuantity,
         removeItem,
         removeSelectedItems,

@@ -19,12 +19,16 @@ const StockReceipt = sequelize.define('StockReceipt', {
             isIn: [['import', 'export']]
         }
     },
+    supplier_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+    },
     supplier_name: { 
-        type: DataTypes.STRING(255), 
+        type: DataTypes.STRING(150), 
         allowNull: true 
     },
     note: { 
-        type: DataTypes.STRING(500), 
+        type: DataTypes.STRING(255), 
         allowNull: true 
     },
     cancel_reason: { 

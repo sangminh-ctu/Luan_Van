@@ -49,7 +49,7 @@
       <!-- 2. KHỐI FLASH SALE (Hình 1 - Chuẩn tông màu đỏ Fahasa) -->
       <div class="rounded-4 p-3 mb-4 shadow-sm" style="background: linear-gradient(135deg, #F35A4D 0%, #D32F2F 100%);">
         <!-- Header Flash Sale nền trắng -->
-        <div class="bg-white rounded-3 p-2 px-3 mb-3 d-flex align-items-center justify-content-between shadow-sm">
+        <div class="bg-white rounded-3 p-2 px-3 mb-0 d-flex align-items-center justify-content-between shadow-sm">
           <div class="d-flex align-items-center">
             <span class="fw-bolder fs-5 text-danger fst-italic me-3">
               <i class="bi bi-lightning-fill"></i> FLASH SALE
@@ -68,8 +68,8 @@
           </router-link>
         </div>
 
-        <!-- Lưới sản phẩm Flash Sale -->
-        <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-6 g-2 g-md-3">
+        <!-- Lưới sản phẩm Flash Sale (Tạm thời ẩn theo yêu cầu, giữ nguyên khung Flash Sale) -->
+        <div v-if="false" class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-6 g-2 g-md-3 mt-3">
           <div class="col" v-for="book in flashSaleBooks" :key="book.book_id">
             <div class="card h-100 border-0 rounded-3 shadow-sm book-card cursor-pointer bg-white" @click="goToDetail(book.book_id)">
               <div class="position-relative p-2 text-center">
@@ -93,13 +93,18 @@
                     {{ formatCurrency(book.price) }}
                   </div>
                   <!-- Thanh tiến độ -->
-                  <div class="progress rounded-pill mt-2" style="height: 14px; background-color: #ffebee;">
+                  <div class="progress position-relative rounded-pill mt-2 overflow-hidden" style="height: 16px; background-color: #ffebee;">
                     <div 
-                      class="progress-bar bg-danger rounded-pill fw-bold" 
+                      class="progress-bar rounded-pill" 
                       role="progressbar" 
-                      :style="{ width: getProgressPercent(book) + '%' }"
+                      :style="{ width: getProgressPercent(book) + '%', backgroundColor: '#ef9a9a' }"
+                    ></div>
+                    <div 
+                      class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center fw-bold"
+                      style="font-size: 10px; line-height: 1; color: #b71c1c;"
                     >
-                      <span style="font-size: 9px;">Đã bán {{ getSoldNumber(book) }}</span>
+                      <span v-if="(book.total_sold || 0) > 0">Đã bán {{ book.total_sold }}</span>
+                      <span v-else class="text-secondary fw-normal">Vừa mở bán</span>
                     </div>
                   </div>
                 </div>
@@ -149,43 +154,48 @@
         <div class="d-flex px-3 pt-3 border-bottom gap-4">
           <div 
             class="cursor-pointer pb-2 trend-tab" 
-            :class="{ 'active': activeTrendTab === 'all' }" 
-            @click="switchTrendTab('all')"
-          >
-            Xu Hướng Theo Ngày
-          </div>
-          <div 
-            class="cursor-pointer pb-2 trend-tab" 
             :class="{ 'active': activeTrendTab === 'discount' }" 
             @click="switchTrendTab('discount')"
           >
-            Sách HOT - Giảm Sốc
+            Đang Giảm Giá
+          </div>
+          <div 
+            class="cursor-pointer pb-2 trend-tab" 
+            :class="{ 'active': activeTrendTab === 'featured' }" 
+            @click="switchTrendTab('featured')"
+          >
+            Nổi Bật
           </div>
           <div 
             class="cursor-pointer pb-2 trend-tab" 
             :class="{ 'active': activeTrendTab === 'newest' }" 
             @click="switchTrendTab('newest')"
           >
-            Sách Mới Nhất
+            Sách Mới
           </div>
         </div>
 
-        <!-- Lưới sản phẩm Xu hướng (5 cột / hàng) -->
+        <!-- Lưới sản phẩm Xu hướng (5 cột / hàng, tối đa 10 cuốn = 2 hàng) -->
         <div class="p-3 bg-light">
-          <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-3">
+          <div v-if="trendingBooks.length === 0" class="text-center text-secondary py-5 bg-white rounded-3 shadow-sm">
+            <i class="bi bi-journal-x fs-1 d-block mb-2 text-muted"></i>
+            Hiện chưa có sách nào trong mục này.
+          </div>
+
+          <div v-else class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-3">
             <div class="col" v-for="book in trendingBooks" :key="book.book_id">
               <div class="card h-100 border-0 shadow-sm trend-card cursor-pointer position-relative bg-white" @click="goToDetail(book.book_id)">
                 
                 <!-- Huy hiệu nhãn góc trên ảnh -->
                 <div class="position-absolute top-0 start-0 m-2" style="z-index: 2;">
-                  <span v-if="book.discount_percent >= 30" class="badge bg-danger shadow-sm">
-                    Bán chạy 🔥
-                  </span>
-                  <span v-else-if="book.discount_percent > 0" class="badge bg-warning text-dark shadow-sm">
-                    Xu hướng ↗
-                  </span>
-                  <span v-else class="badge bg-primary shadow-sm">
+                  <span v-if="activeTrendTab === 'newest' && book.is_new" class="badge bg-primary shadow-sm">
                     Mới
+                  </span>
+                  <span v-else-if="activeTrendTab === 'discount' && book.discount_percent > 0" class="badge bg-danger shadow-sm">
+                    -{{ Math.round(book.discount_percent) }}%
+                  </span>
+                  <span v-else-if="activeTrendTab === 'featured' && (book.total_sold || 0) > 0" class="badge bg-danger shadow-sm">
+                    Bán chạy
                   </span>
                 </div>
 
@@ -214,14 +224,19 @@
                       {{ formatCurrency(book.price) }}
                     </div>
                     
-                    <!-- Thanh tiến độ đã bán -->
-                    <div class="progress rounded-pill mt-2" style="height: 14px; background-color: #ffebee;">
+                    <!-- Thanh tiến độ đã bán thực tế từ CSDL -->
+                    <div class="progress position-relative rounded-pill mt-2 overflow-hidden" style="height: 16px; background-color: #ffebee;">
                       <div 
-                        class="progress-bar bg-danger rounded-pill fw-bold" 
+                        class="progress-bar rounded-pill" 
                         role="progressbar" 
-                        :style="{ width: getProgressPercent(book) + '%' }"
+                        :style="{ width: getProgressPercent(book) + '%', backgroundColor: '#ef9a9a' }"
+                      ></div>
+                      <div 
+                        class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center fw-bold"
+                        style="font-size: 10px; line-height: 1; color: #b71c1c;"
                       >
-                        <span style="font-size: 9px;">Đã bán {{ getSoldNumber(book) }}</span>
+                        <span v-if="(book.total_sold || 0) > 0">Đã bán {{ book.total_sold }}</span>
+                        <span v-else class="text-secondary fw-normal">Vừa mở bán</span>
                       </div>
                     </div>
                   </div>
@@ -230,7 +245,7 @@
             </div>
           </div>
           
-          <div class="text-center mt-4 mb-2">
+          <div v-if="trendingBooks.length > 0" class="text-center mt-4 mb-2">
             <button class="btn btn-outline-danger px-5 py-2 fw-bold shadow-sm" @click="loadMoreTrending">
               Xem Thêm
             </button>
@@ -309,7 +324,8 @@
                   </span>
                   <div class="fw-bold text-dark text-truncate small" :title="book.title">{{ book.title }}</div>
                   <div class="text-muted" style="font-size: 11px;">
-                    Đã bán trong tuần {{ getSoldNumber(book) }}
+                    <span v-if="(book.total_sold || 0) > 0">Đã bán {{ book.total_sold }} cuốn</span>
+                    <span v-else>Sách mới</span>
                   </div>
                 </div>
               </div>
@@ -333,7 +349,12 @@
                 <!-- Thông tin chi tiết & nút Mua -->
                 <div class="col-sm-7 d-flex flex-column">
                   <div class="small text-muted mb-1">
-                    Đã bán trong tuần {{ getSoldNumber(selectedTopBook) }}
+                    <span v-if="(selectedTopBook.total_sold || 0) > 0">
+                      <i class="bi bi-bag-check text-danger me-1"></i>Đã bán {{ selectedTopBook.total_sold }} cuốn
+                    </span>
+                    <span v-else class="text-secondary">
+                      <i class="bi bi-stars text-warning me-1"></i>Sách mới phát hành
+                    </span>
                   </div>
                   <h5 
                     class="fw-bold text-dark cursor-pointer text-truncate-2 mb-2" 
@@ -405,12 +426,13 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { publicBookService } from '@/services/bookService';
-import { publicCategoryService } from '@/services/categoryService';
 import { getBookCoverUrl } from '@/utils/imageHelper';
 import { useCartStore } from '@/stores/cartStore';
+import { useCategoryStore } from '@/stores/categoryStore';
 
 const router = useRouter();
 const cartStore = useCartStore();
+const categoryStore = useCategoryStore();
 
 // Trạng thái dữ liệu
 const categoriesList = ref([]);
@@ -420,7 +442,7 @@ const trendingBooks = ref([]);
 const topBooksList = ref([]);
 const selectedTopBook = ref(null);
 
-const activeTrendTab = ref('all');
+const activeTrendTab = ref('discount');
 const bestSellerCategory = ref(null);
 const selectedCategory = ref(null);
 const isAddingCart = ref(false);
@@ -450,19 +472,21 @@ const startTimer = () => {
 // Tải dữ liệu từ Backend
 const fetchHomeData = async () => {
   try {
-    // 1. Thể loại
-    categoriesList.value = await publicCategoryService.getCategories();
+    // 1. Thể loại (lấy từ categoryStore có cache)
+    await categoryStore.fetchCategories();
+    categoriesList.value = categoryStore.categoryTree;
 
     // 2. Sách Flash Sale (lọc sách có giảm giá)
     const flashRes = await publicBookService.getBooks({ on_sale: true, limit: 12, sort: 'discount_desc' });
     flashSaleBooks.value = flashRes.books || [];
 
-    // 3. Toàn bộ sách mới nhất
-    const allRes = await publicBookService.getBooks({ limit: 20, sort: 'newest' });
-    allBooks.value = allRes.books || [];
+    // 3. Sách Đang Giảm Giá (tab mặc định đầu tiên của Xu Hướng Mua Sắm, tối đa 10 cuốn = 2 hàng x 5 cuốn)
+    const discountRes = await publicBookService.getBooks({ on_sale: true, limit: 10, sort: 'discount_desc' });
+    trendingBooks.value = discountRes.books || [];
 
-    // 4. Sách xu hướng
-    trendingBooks.value = [...allBooks.value];
+    // 4. Lấy sách Nổi Bật / Bán Chạy cho khối Best Sellers
+    const featuredRes = await publicBookService.getBooks({ limit: 20, sort: 'featured' });
+    allBooks.value = featuredRes.books || [];
 
     // 5. Best Sellers Top list
     updateBestSellers();
@@ -471,11 +495,11 @@ const fetchHomeData = async () => {
   }
 };
 
-// Cập nhật danh sách Best Sellers theo thể loại
+// Cập nhật danh sách Best Sellers theo thể loại (hỗ trợ cả cha lẫn con)
 const updateBestSellers = () => {
   let filtered = allBooks.value;
   if (bestSellerCategory.value) {
-    filtered = allBooks.value.filter(b => b.category_id === bestSellerCategory.value);
+    filtered = allBooks.value.filter(b => categoryStore.isParentOrSelfActive(bestSellerCategory.value, b.category_id));
   }
   topBooksList.value = filtered.slice(0, 5);
   selectedTopBook.value = topBooksList.value.length > 0 ? topBooksList.value[0] : null;
@@ -491,15 +515,16 @@ const switchTrendTab = async (tab) => {
   try {
     if (tab === 'discount') {
       const res = await publicBookService.getBooks({ on_sale: true, limit: 10, sort: 'discount_desc' });
-      trendingBooks.value = res.books;
-    } else if (tab === 'newest') {
-      const res = await publicBookService.getBooks({ limit: 10, sort: 'newest' });
-      trendingBooks.value = res.books;
+      trendingBooks.value = res.books || [];
+    } else if (tab === 'featured') {
+      const res = await publicBookService.getBooks({ only_sold: true, limit: 10, sort: 'featured' });
+      trendingBooks.value = res.books || [];
     } else {
-      trendingBooks.value = allBooks.value.slice(0, 10);
+      const res = await publicBookService.getBooks({ is_new: true, limit: 10, sort: 'newest' });
+      trendingBooks.value = res.books || [];
     }
   } catch (e) {
-    console.error(e);
+    console.error('Lỗi chuyển tab xu hướng:', e);
   }
 };
 
@@ -532,7 +557,13 @@ const handleAddToCart = async (book) => {
 };
 
 const loadMoreTrending = () => {
-  router.push('/books');
+  if (activeTrendTab.value === 'discount') {
+    router.push({ path: '/books', query: { on_sale: 'true', sort: 'discount_desc' } });
+  } else if (activeTrendTab.value === 'featured') {
+    router.push({ path: '/books', query: { only_sold: 'true', sort: 'featured' } });
+  } else {
+    router.push({ path: '/books', query: { is_new: 'true', sort: 'newest' } });
+  }
 };
 
 // Helpers định dạng
@@ -546,15 +577,10 @@ const getAuthorNames = (authors) => {
   return authors.map(a => a.author_name).join(', ');
 };
 
-const getSoldNumber = (book) => {
-  // Giả lập số bán tự nhiên dựa trên ID sách để hiển thị tiến độ đẹp mắt
-  const id = Number(book.book_id) || 1;
-  return (id * 7 + 12) % 180 + 3;
-};
-
 const getProgressPercent = (book) => {
-  const sold = getSoldNumber(book);
-  return Math.min(100, Math.max(15, (sold / 200) * 100));
+  const sold = Number(book?.total_sold) || 0;
+  if (sold <= 0) return 0;
+  return Math.min(100, Math.max(15, (sold / 50) * 100));
 };
 
 onMounted(() => {
