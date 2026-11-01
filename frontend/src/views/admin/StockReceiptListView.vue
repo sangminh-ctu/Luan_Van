@@ -3,15 +3,15 @@
     <!-- Tiêu đề & Nút thao tác -->
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
-        <h4 class="fw-bold text-dark mb-1">Quản lý Phiếu Nhập / Xuất Kho</h4>
-        <p class="text-muted small mb-0">Theo dõi toàn bộ lịch sử chứng từ biến động hàng hóa trong kho</p>
+        <h4 class="fw-bold text-dark mb-1">Quản lý Phiếu Nhập Kho</h4>
+        <p class="text-muted small mb-0">Theo dõi lịch sử chứng từ nhập hàng hóa từ nhà cung cấp vào kho</p>
       </div>
       <div class="d-flex gap-2">
         <router-link to="/admin/inventory" class="btn btn-outline-secondary shadow-sm">
           <i class="bi bi-boxes me-1"></i> Báo cáo tồn kho
         </router-link>
         <router-link to="/admin/stock-receipts/create" class="btn btn-primary shadow-sm">
-          <i class="bi bi-plus-circle me-1"></i> Tạo phiếu mới
+          <i class="bi bi-plus-circle me-1"></i> Lập phiếu nhập mới
         </router-link>
       </div>
     </div>
@@ -26,7 +26,7 @@
     <div class="card border-0 shadow-sm rounded-4 mb-4">
       <div class="card-body p-3">
         <div class="row g-2 align-items-center">
-          <div class="col-md-3">
+          <div class="col-md-4">
             <div class="input-group">
               <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
               <input 
@@ -46,14 +46,7 @@
               </option>
             </select>
           </div>
-          <div class="col-md-2">
-            <select class="form-select shadow-none" v-model="filters.type" @change="handleSearch">
-              <option value="">Tất cả loại phiếu</option>
-              <option value="import">Phiếu Nhập kho</option>
-              <option value="export">Phiếu Xuất kho</option>
-            </select>
-          </div>
-          <div class="col-md-2">
+          <div class="col-md-3">
             <select class="form-select shadow-none" v-model="filters.status" @change="handleSearch">
               <option value="">Tất cả trạng thái</option>
               <option value="pending">Chờ duyệt (Pending)</option>
@@ -76,7 +69,6 @@
           <thead class="table-light">
             <tr>
               <th scope="col" class="ps-4" style="width: 170px;">Mã phiếu</th>
-              <th scope="col" style="width: 130px;">Loại phiếu</th>
               <th scope="col">Đối tác / Nhà cung cấp</th>
               <th scope="col" class="text-end" style="width: 150px;">Tổng giá trị</th>
               <th scope="col" style="width: 170px;">Ngày tạo</th>
@@ -86,14 +78,14 @@
           </thead>
           <tbody>
             <tr v-if="isLoading">
-              <td colspan="7" class="text-center py-5">
+              <td colspan="6" class="text-center py-5">
                 <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
               </td>
             </tr>
             <tr v-else-if="receipts.length === 0">
-              <td colspan="7" class="text-center py-5 text-muted">
+              <td colspan="6" class="text-center py-5 text-muted">
                 <i class="bi bi-journal-x fs-1 d-block mb-2 text-secondary opacity-50"></i>
-                Không tìm thấy phiếu kho nào.
+                Không tìm thấy phiếu nhập kho nào.
               </td>
             </tr>
             <tr v-else v-for="receipt in receipts" :key="receipt.receipt_id">
@@ -102,20 +94,10 @@
                 <span class="font-monospace fw-bold text-dark">{{ receipt.receipt_code }}</span>
               </td>
 
-              <!-- Loại phiếu -->
-              <td>
-                <span 
-                  class="badge px-2 py-1"
-                  :class="receipt.type === 'import' ? 'bg-success-subtle text-success-emphasis border border-success-subtle' : 'bg-warning-subtle text-warning-emphasis border border-warning-subtle'"
-                >
-                  {{ receipt.type === 'import' ? 'Nhập kho' : 'Xuất kho' }}
-                </span>
-              </td>
-
               <!-- Nhà cung cấp / Ghi chú -->
               <td>
                 <div class="fw-bold text-dark">
-                  {{ receipt.type === 'import' ? (receipt.supplier_name || 'Không xác định') : 'Xuất kho nội bộ' }}
+                  {{ receipt.supplier_name || 'Không xác định' }}
                 </div>
                 <small v-if="receipt.note" class="text-muted text-truncate d-block" style="max-width: 250px;" :title="receipt.note">
                   {{ receipt.note }}
@@ -418,7 +400,7 @@ const cancelReason = ref('')
 const filters = reactive({
   search: '',
   supplier_id: '',
-  type: '',
+  type: 'import',
   status: '',
   page: 1,
   limit: 10
@@ -463,7 +445,7 @@ const handleSearch = () => {
 const resetFilter = () => {
   filters.search = ''
   filters.supplier_id = ''
-  filters.type = ''
+  filters.type = 'import'
   filters.status = ''
   filters.page = 1
   fetchReceipts()

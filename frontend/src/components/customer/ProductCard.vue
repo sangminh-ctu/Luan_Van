@@ -9,8 +9,8 @@
       <span v-if="book.is_new" class="badge bg-primary shadow-sm">
         Mới
       </span>
-      <span v-if="book.discount_percent > 0" class="badge bg-danger shadow-sm">
-        -{{ Math.round(book.discount_percent) }}%
+      <span v-if="(book.effective_discount_percent ?? book.discount_percent) > 0" class="badge bg-danger shadow-sm">
+        -{{ Math.round((book.effective_discount_percent ?? book.discount_percent)) }}%
       </span>
       <span v-else-if="(book.total_sold || 0) > 0" class="badge bg-danger shadow-sm">
         Bán chạy 🔥
@@ -60,11 +60,11 @@
         <!-- Giá bán -->
         <div class="d-flex align-items-center mb-1 flex-wrap gap-1">
           <span class="text-danger fw-bold fs-5">{{ formatCurrency(book.final_price) }}</span>
-          <span v-if="book.discount_percent > 0" class="badge bg-danger small" style="font-size: 11px;">
-            -{{ Math.round(book.discount_percent) }}%
+          <span v-if="(book.effective_discount_percent ?? book.discount_percent) > 0" class="badge bg-danger small" style="font-size: 11px;">
+            -{{ Math.round((book.effective_discount_percent ?? book.discount_percent)) }}%
           </span>
         </div>
-        <div v-if="book.discount_percent > 0" class="text-muted text-decoration-line-through small" style="font-size: 12px;">
+        <div v-if="(book.effective_discount_percent ?? book.discount_percent) > 0" class="text-muted text-decoration-line-through small" style="font-size: 12px;">
           {{ formatCurrency(book.price) }}
         </div>
 

@@ -31,7 +31,10 @@ app.use('/api/cart', require('./routes/customer/cart.routes'));
 app.use('/api/addresses', require('./routes/customer/address.routes'));
 app.use('/api/orders', require('./routes/customer/order.routes'));
 
+app.use('/api/flash-sales', require('./routes/customer/flash-sale.routes'));
+
 // Admin Routes
+app.use('/api/admin/flash-sales', verifyToken, requireAdmin, require('./routes/admin/flash-sale.routes'));
 app.use('/api/admin/categories', verifyToken, requireAdmin, require('./routes/admin/category.routes'));
 app.use('/api/admin/authors', verifyToken, requireAdmin, require('./routes/admin/author.routes'));
 app.use('/api/admin/publishers', verifyToken, requireAdmin, require('./routes/admin/publisher.routes'));
@@ -43,6 +46,9 @@ app.use('/api/admin', verifyToken, requireAdmin, require('./routes/admin/invento
 // Global Error Handler
 app.use((err, req, res, next) => {
     console.error(err.stack || err);
+    const dbCode = err.original?.code || err.parent?.code;
+    if (dbCode === '23P01') { err.status = 409; err.message = 'Thời gian trùng với một chương trình Flash Sale đã bật.'; }
+    if (['23503', '23001'].includes(dbCode) && !err.status) { err.status = 409; err.message = 'Dữ liệu đang được tham chiếu và không thể xóa.'; }
     const status = err.status || err.statusCode || 500;
     const responseBody = {
         message: err.message || 'Đã có lỗi xảy ra',
@@ -51,6 +57,8 @@ app.use((err, req, res, next) => {
     if (err.outOfStockItems) {
         responseBody.out_of_stock_items = err.outOfStockItems;
     }
+    if (err.code) responseBody.code = err.code;
+    if (err.priceChanges) responseBody.price_changes = err.priceChanges;
     res.status(status).json(responseBody);
 });
 

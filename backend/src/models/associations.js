@@ -28,16 +28,16 @@ Supplier.hasMany(Book, { foreignKey: 'supplier_id', as: 'books' });
 Book.belongsTo(Supplier, { foreignKey: 'supplier_id', as: 'supplier' });
 
 // 3. Sách - Tác giả (N - N thông qua BookAuthor)
-Book.belongsToMany(Author, { 
-    through: BookAuthor, 
-    foreignKey: 'book_id', 
+Book.belongsToMany(Author, {
+    through: BookAuthor,
+    foreignKey: 'book_id',
     otherKey: 'author_id',
-    as: 'authors' 
+    as: 'authors'
 });
 
-Author.belongsToMany(Book, { 
-    through: BookAuthor, 
-    foreignKey: 'author_id', 
+Author.belongsToMany(Book, {
+    through: BookAuthor,
+    foreignKey: 'author_id',
     otherKey: 'book_id',
     as: 'books'
 });
@@ -94,14 +94,25 @@ OrderItem.belongsTo(Book, { foreignKey: 'book_id', as: 'book' });
 Order.hasOne(Shipment, { foreignKey: 'order_id', as: 'shipment' });
 Shipment.belongsTo(Order, { foreignKey: 'order_id', as: 'order' });
 
-module.exports = { 
-    Book, 
-    Category, 
-    Author, 
-    Publisher, 
+const FlashSale = require('./FlashSale');
+const FlashSaleItem = require('./FlashSaleItem');
+FlashSale.hasMany(FlashSaleItem, { foreignKey: 'flash_sale_id', as: 'items', onDelete: 'CASCADE' });
+FlashSaleItem.belongsTo(FlashSale, { foreignKey: 'flash_sale_id', as: 'flash_sale' });
+Book.hasMany(FlashSaleItem, { foreignKey: 'book_id', as: 'flash_sale_items', onDelete: 'RESTRICT' });
+FlashSaleItem.belongsTo(Book, { foreignKey: 'book_id', as: 'book', onDelete: 'RESTRICT' });
+User.hasMany(FlashSale, { foreignKey: 'created_by', as: 'flash_sales', onDelete: 'SET NULL' });
+FlashSale.belongsTo(User, { foreignKey: 'created_by', as: 'creator', onDelete: 'SET NULL' });
+FlashSaleItem.hasMany(OrderItem, { foreignKey: 'flash_sale_item_id', as: 'order_items', onDelete: 'RESTRICT' });
+OrderItem.belongsTo(FlashSaleItem, { foreignKey: 'flash_sale_item_id', as: 'flash_sale_item', onDelete: 'RESTRICT' });
+
+module.exports = { FlashSale, FlashSaleItem,
+    Book,
+    Category,
+    Author,
+    Publisher,
     Supplier,
-    BookAuthor, 
-    BookImage, 
+    BookAuthor,
+    BookImage,
     Inventory,
     StockReceipt,
     StockReceiptDetail,

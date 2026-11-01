@@ -7,6 +7,7 @@ const OrderItem = sequelize.define('OrderItem', {
         primaryKey: true,
         autoIncrement: true
     },
+    flash_sale_item_id: { type: DataTypes.INTEGER, allowNull: true },
     order_id: {
         type: DataTypes.INTEGER,
         allowNull: false

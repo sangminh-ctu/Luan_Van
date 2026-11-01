@@ -223,13 +223,14 @@
                   </div>
                 </div>
 
+                <span v-if="item.book?.flash_sale_item_id" class="badge text-bg-danger align-self-start mb-1">Flash Sale</span>
                 <!-- Đơn giá bán & Giá bìa gạch ngang -->
                 <div class="mt-auto pt-1 d-flex align-items-baseline flex-wrap gap-2">
                   <span class="fw-bold text-dark">
                     {{ formatCurrency(item.book?.final_price || 0) }}
                   </span>
                   <span
-                    v-if="item.book?.discount_percent > 0"
+                    v-if="(item.book?.effective_discount_percent ?? item.book?.discount_percent) > 0"
                     class="text-muted text-decoration-line-through small"
                   >
                     {{ formatCurrency(item.book?.price || 0) }}

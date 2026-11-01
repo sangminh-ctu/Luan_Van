@@ -4,7 +4,7 @@
     <!-- Logo -->
     <router-link to="/admin" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto link-dark text-decoration-none px-2">
       <i class="bi bi-book-half fs-4 text-primary me-2"></i>
-      <span class="fs-5 fw-bold text-primary">BookStore AI</span>
+      <span class="fs-5 fw-bold text-primary">BookStore</span>
     </router-link>
     <hr>
     
@@ -40,7 +40,7 @@
         </a>
         <ul class="nav flex-column ms-3 mt-1" v-show="openMenu.inventory">
           <li class="nav-item"><router-link to="/admin/inventory" class="nav-link text-muted py-2 small" active-class="text-primary fw-bold bg-light"><i class="bi bi-dash me-1"></i> Tồn kho</router-link></li>
-          <li class="nav-item"><router-link to="/admin/stock-receipts" class="nav-link text-muted py-2 small" active-class="text-primary fw-bold bg-light"><i class="bi bi-dash me-1"></i> Phiếu nhập/xuất</router-link></li>
+          <li class="nav-item"><router-link to="/admin/stock-receipts" class="nav-link text-muted py-2 small" active-class="text-primary fw-bold bg-light"><i class="bi bi-dash me-1"></i> Phiếu nhập kho</router-link></li>
           <li class="nav-item"><router-link to="/admin/suppliers" class="nav-link text-muted py-2 small" active-class="text-primary fw-bold bg-light"><i class="bi bi-dash me-1"></i> Nhà cung cấp</router-link></li>
         </ul>
       </li>
@@ -66,9 +66,14 @@
       
       <!-- Khuyến mãi -->
       <li class="nav-item mb-1">
-        <router-link to="/admin/vouchers" class="nav-link text-dark custom-nav-link" active-class="active shadow-sm text-white">
-          <i class="bi bi-ticket-perforated me-2"></i> Khuyến mãi
-        </router-link>
+        <a href="#" class="nav-link text-dark d-flex justify-content-between align-items-center custom-nav-link" @click.prevent="openMenu.promotions = !openMenu.promotions">
+          <span><i class="bi bi-ticket-perforated me-2"></i> Khuyến mãi</span>
+          <i class="bi" :class="openMenu.promotions ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+        </a>
+        <ul v-show="openMenu.promotions" class="nav flex-column ms-3 mt-1">
+          <li><router-link to="/admin/vouchers" class="nav-link text-muted py-2 small" active-class="text-primary fw-bold bg-light"><i class="bi bi-dash me-1"></i>Mã giảm giá</router-link></li>
+          <li><router-link to="/admin/flash-sales" class="nav-link text-muted py-2 small" active-class="text-primary fw-bold bg-light"><i class="bi bi-lightning-charge me-1"></i>Flash Sale</router-link></li>
+        </ul>
       </li>
     </ul>
     
@@ -103,6 +108,7 @@ const route = useRoute()
 
 // Quản lý trạng thái mở/đóng của các menu con
 const openMenu = reactive({
+  promotions: false,
   books: false,
   inventory: false,
   orders: false
@@ -110,6 +116,7 @@ const openMenu = reactive({
 
 // Tự động mở menu con nếu đang truy cập vào trang thuộc nhóm đó
 watch(() => route.path, (newPath) => {
+  if (newPath.startsWith('/admin/flash-sales') || newPath.startsWith('/admin/vouchers')) openMenu.promotions = true
   if (newPath.startsWith('/admin/books') || ['/admin/categories', '/admin/authors', '/admin/publishers'].includes(newPath)) openMenu.books = true
   if (['/admin/inventory', '/admin/suppliers'].includes(newPath) || newPath.startsWith('/admin/stock-receipts')) openMenu.inventory = true
   if (newPath.startsWith('/admin/orders') || newPath.startsWith('/admin/shipments')) openMenu.orders = true

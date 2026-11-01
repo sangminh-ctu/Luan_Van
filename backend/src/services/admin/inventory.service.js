@@ -101,14 +101,8 @@ class InventoryService {
      * Hỗ trợ cờ auto_complete = true (Lưu & Hoàn tất trong cùng 1 transaction)
      */
     async createReceipt(data) {
-        const { type, supplier_id, note, details, auto_complete } = data;
-
-        // 1. Validate loại phiếu
-        if (!['import', 'export'].includes(type)) {
-            const err = new Error('Loại phiếu không hợp lệ (chỉ chấp nhận import hoặc export)');
-            err.status = 400;
-            throw err;
-        }
+        const { supplier_id, note, details, auto_complete } = data;
+        const type = 'import';
 
         let resolvedSupplierId = null;
         let resolvedSupplierName = null;

@@ -11,7 +11,7 @@ const {
     Inventory,
     User
 } = require('../models/associations');
-const catalogService = require('./customer/catalog.service');
+const pricing = require('./pricing.service');
 const inventoryService = require('./admin/inventory.service');
 const {
     FREE_SHIPPING_THRESHOLD,
@@ -108,7 +108,7 @@ class OrderService {
 
     /**
      * Tạo đơn hàng mới từ các sách đã chọn trong giỏ hàng (POST /api/orders)
-     * Client chỉ gửi { book_ids, address_id, payment_method }
+     * Client gửi { book_ids, address_id, payment_method, expected_prices }. Giá do backend quyết định.
      */
     async createOrder(userId, payload) {
         const rawBookIds = payload?.book_ids;
@@ -139,6 +139,12 @@ class OrderService {
         // Loại bỏ trùng lặp và sắp xếp book_id tăng dần để khóa dòng chống Deadlock
         const sortedBookIds = [...new Set(parsedIds)].sort((a, b) => a - b);
 
+        const expected = payload?.expected_prices;
+        if (!expected || typeof expected !== 'object' || Array.isArray(expected) ||
+            sortedBookIds.some(id => typeof expected[id] !== 'number' || !Number.isFinite(expected[id]) || expected[id] < 0)) {
+            const error = new Error('Vui lòng tải lại giỏ hàng để xác nhận giá sản phẩm.');
+            error.status = 400; throw error;
+        }
         // 3. Kiểm tra address_id thuộc đúng người đang đăng nhập
         const addressId = Number(rawAddressId);
         if (!Number.isInteger(addressId) || addressId <= 0) {
@@ -243,6 +249,14 @@ class OrderService {
                 throw err;
             }
 
+            const priceAt = await pricing.now(transaction);
+            const prices = await pricing.getEffectivePrices(sortedBookIds, {transaction, at:priceAt});
+            const priceChanges = sortedBookIds.filter(id => expected[id] !== prices.get(id).effective_price)
+                .map(id => ({book_id:id,title:bookById.get(id).title,old_price:expected[id],new_price:prices.get(id).effective_price}));
+            if (priceChanges.length) {
+                const error = new Error('Giá sản phẩm đã thay đổi. Vui lòng xác nhận lại trước khi đặt hàng.');
+                error.status = 409; error.code = 'PRICE_CHANGED'; error.priceChanges = priceChanges; throw error;
+            }
             // Trừ kho bằng hàm dùng chung adjustStock theo đúng thứ tự book_id ASC
             // và tính tổng tiền theo đúng quy tắc làm tròn của giỏ hàng
             let subtotal = 0;
@@ -254,13 +268,14 @@ class OrderService {
 
                 await inventoryService.adjustStock(bookId, -qty, transaction);
 
-                const unitPrice = catalogService.calculateFinalPrice(book.price, book.discount_percent);
+                const unitPrice = prices.get(bookId).effective_price;
                 subtotal += unitPrice * qty;
 
                 orderItemsPayload.push({
                     book_id: bookId,
                     quantity: qty,
-                    unit_price_at_purchase: unitPrice
+                    unit_price_at_purchase: unitPrice,
+                    flash_sale_item_id: prices.get(bookId).flash_sale_item_id
                 });
             }
 

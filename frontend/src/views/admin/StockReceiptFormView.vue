@@ -6,8 +6,8 @@
         <i class="bi bi-arrow-left fs-5"></i>
       </router-link>
       <div>
-        <h4 class="fw-bold text-dark mb-0">Lập Phiếu Nhập / Xuất Kho</h4>
-        <small class="text-muted">Tạo chứng từ biến động kho và hỗ trợ hoàn tất cập nhật số lượng tồn ngay lập tức</small>
+        <h4 class="fw-bold text-dark mb-0">Lập Phiếu Nhập Kho</h4>
+        <small class="text-muted">Tạo chứng từ nhập hàng từ nhà cung cấp và cập nhật số lượng tồn kho</small>
       </div>
     </div>
 
@@ -46,7 +46,7 @@
                 <!-- Hàng điều khiển chính: Tất cả ô nhập và nút xóa thẳng hàng tăm tắp -->
                 <div class="row g-2 align-items-start">
                   <!-- Cột Tìm kiếm & Chọn Sách -->
-                  <div :class="form.type === 'import' ? 'col-md-5' : 'col-md-7'" class="position-relative">
+                  <div class="col-md-5 position-relative">
                     <label class="form-label small fw-bold text-secondary mb-1">Cuốn sách <span class="text-danger">*</span></label>
                     <div class="input-group">
                       <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
@@ -94,7 +94,7 @@
                   </div>
 
                   <!-- Cột Số lượng -->
-                  <div :class="form.type === 'import' ? 'col-md-3' : 'col-md-4'">
+                  <div class="col-md-3">
                     <label class="form-label small fw-bold text-secondary mb-1">Số lượng <span class="text-danger">*</span></label>
                     <input 
                       type="number" 
@@ -106,8 +106,8 @@
                     >
                   </div>
 
-                  <!-- Cột Đơn giá (Chỉ hiện khi nhập kho) -->
-                  <div v-if="form.type === 'import'" class="col-md-3">
+                  <!-- Cột Đơn giá nhập -->
+                  <div class="col-md-3">
                     <label class="form-label small fw-bold text-secondary mb-1">Đơn giá nhập (đ) <span class="text-danger">*</span></label>
                     <div class="input-group">
                       <input 
@@ -138,20 +138,14 @@
                   </div>
                 </div>
 
-                <!-- Thanh thông tin phụ: Tồn kho hiện tại & Cảnh báo vượt tồn & Thành tiền -->
+                <!-- Thanh thông tin phụ: Tồn kho hiện tại & Thành tiền -->
                 <div v-if="item.book_id" class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top small">
                   <div>
                     <span class="badge bg-white text-secondary border py-1 px-2">
                       <i class="bi bi-box me-1"></i>Tồn kho hiện tại: <strong class="text-dark">{{ item.current_stock }}</strong> cuốn
                     </span>
-                    <span 
-                      v-if="form.type === 'export' && item.quantity > item.current_stock" 
-                      class="text-danger fw-bold ms-2"
-                    >
-                      <i class="bi bi-exclamation-triangle-fill me-1"></i>Vượt quá tồn kho (hiện chỉ còn {{ item.current_stock }} cuốn)!
-                    </span>
                   </div>
-                  <div v-if="form.type === 'import'" class="text-muted">
+                  <div class="text-muted">
                     Thành tiền: <strong class="text-dark fs-6">{{ formatCurrency((item.quantity || 0) * (item.unit_cost || 0)) }}</strong>
                   </div>
                 </div>
@@ -173,27 +167,8 @@
               <h5 class="fw-bold mb-0 text-primary"><i class="bi bi-card-checklist me-2"></i>Thông tin chứng từ</h5>
             </div>
             <div class="card-body p-4">
-              <!-- Chọn Loại phiếu -->
+              <!-- Nhà cung cấp -->
               <div class="mb-3">
-                <label class="form-label fw-bold text-secondary small">Loại phiếu <span class="text-danger">*</span></label>
-                <div class="d-flex gap-2">
-                  <div class="form-check flex-fill p-2 border rounded-3 bg-white" :class="{ 'border-success bg-success-subtle': form.type === 'import' }">
-                    <input class="form-check-input ms-1" type="radio" name="receiptType" id="typeImport" value="import" v-model="form.type">
-                    <label class="form-check-label fw-bold ms-2 cursor-pointer" for="typeImport">
-                      <i class="bi bi-arrow-down-left text-success me-1"></i>Nhập kho
-                    </label>
-                  </div>
-                  <div class="form-check flex-fill p-2 border rounded-3 bg-white" :class="{ 'border-warning bg-warning-subtle': form.type === 'export' }">
-                    <input class="form-check-input ms-1" type="radio" name="receiptType" id="typeExport" value="export" v-model="form.type">
-                    <label class="form-check-label fw-bold ms-2 cursor-pointer" for="typeExport">
-                      <i class="bi bi-arrow-up-right text-warning me-1"></i>Xuất kho
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Nhà cung cấp (Chỉ khi Nhập kho) -->
-              <div v-if="form.type === 'import'" class="mb-3">
                 <div class="d-flex justify-content-between align-items-center mb-1">
                   <label class="form-label fw-bold text-secondary small mb-0">Nhà cung cấp / Đối tác <span class="text-danger">*</span></label>
                   <button 
@@ -218,18 +193,14 @@
                 </div>
               </div>
 
-              <!-- Ghi chú / Lý do (Bắt buộc khi Xuất kho) -->
+              <!-- Ghi chú phiếu -->
               <div class="mb-4">
-                <label class="form-label fw-bold text-secondary small">
-                  {{ form.type === 'export' ? 'Lý do xuất kho' : 'Ghi chú phiếu' }}
-                  <span v-if="form.type === 'export'" class="text-danger">*</span>
-                </label>
+                <label class="form-label fw-bold text-secondary small">Ghi chú phiếu</label>
                 <textarea 
                   class="form-control shadow-none" 
                   rows="3" 
                   v-model="form.note" 
-                  :placeholder="form.type === 'export' ? 'Bắt buộc: VD xuất trả NXB, hủy sách rách hỏng...' : 'Ghi chú đợt giao nhận...'"
-                  :required="form.type === 'export'"
+                  placeholder="Ghi chú đợt giao nhận..."
                 ></textarea>
               </div>
 
@@ -420,7 +391,6 @@ const fetchSuppliersList = async () => {
 
 // Tính tổng giá trị phiếu
 const computedTotalCost = computed(() => {
-  if (form.type === 'export') return 0
   return form.details.reduce((sum, item) => sum + (Number(item.quantity || 0) * Number(item.unit_cost || 0)), 0)
 })
 
@@ -508,19 +478,10 @@ const handleSubmit = async (autoCompleteFlag) => {
       alertMsg.value = 'Số lượng sách phải lớn hơn 0!'
       return
     }
-    if (form.type === 'export' && item.quantity > item.current_stock) {
-      alertMsg.value = `Sách "${item.searchKeyword}" không đủ số lượng trong kho để xuất (tồn: ${item.current_stock}, yêu cầu: ${item.quantity})!`
-      return
-    }
   }
 
-  if (form.type === 'import' && !form.supplier_id) {
+  if (!form.supplier_id) {
     alertMsg.value = 'Vui lòng chọn Nhà cung cấp / Đối tác cho phiếu nhập kho!'
-    return
-  }
-
-  if (form.type === 'export' && (!form.note || !form.note.trim())) {
-    alertMsg.value = 'Phiếu xuất kho bắt buộc phải nhập lý do vào ô Ghi chú!'
     return
   }
 
@@ -529,13 +490,13 @@ const handleSubmit = async (autoCompleteFlag) => {
     isAutoComplete.value = autoCompleteFlag
 
     const payload = {
-      type: form.type,
-      supplier_id: form.type === 'import' ? Number(form.supplier_id) : null,
+      type: 'import',
+      supplier_id: Number(form.supplier_id),
       note: form.note,
       details: validDetails.map(d => ({
         book_id: d.book_id,
         quantity: d.quantity,
-        unit_cost: form.type === 'import' ? d.unit_cost : 0
+        unit_cost: d.unit_cost
       })),
       auto_complete: autoCompleteFlag
     }

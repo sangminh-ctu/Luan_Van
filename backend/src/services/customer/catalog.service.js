@@ -1,3 +1,4 @@
+const pricing = require('../pricing.service');
 const { Op } = require('sequelize');
 const { sequelize } = require('../../config/database');
 const { Book, Category, Author, Publisher, Supplier, BookImage, Inventory } = require('../../models/associations');
@@ -73,7 +74,8 @@ class CatalogService {
      * - Sắp xếp theo giá sau giảm chuẩn xác
      * - Kiểm tra chặt chẽ tính hợp lệ của mọi tham số (trả về lỗi 400 nếu sai)
      */
-    async getBooks(query = {}) {
+    async getBooks(query = {}, context = {}) {
+        const pricingAt = context.at || await pricing.now();
         // 1. Kiểm tra tính hợp lệ của page
         let page = 1;
         if (query.page !== undefined && query.page !== null && query.page !== '') {
@@ -114,6 +116,9 @@ class CatalogService {
 
         const offset = (page - 1) * limit;
         const where = { is_active: true };
+        if(context.flashSaleId) where[Op.and] = [sequelize.literal(
+            'EXISTS (SELECT 1 FROM flash_sale_item fsi WHERE fsi.book_id = "Book".book_id AND fsi.flash_sale_id = ' + Number(context.flashSaleId) + ')'
+        )];
 
         // 4. Tìm kiếm theo tên hoặc ISBN
         if (query.search && query.search.trim()) {
@@ -223,7 +228,7 @@ class CatalogService {
         }
 
         // 12. Biểu thức tính giá sau giảm & tổng số lượng đã giao thành công (delivered)
-        const finalPriceSql = sequelize.literal('ROUND("Book"."price" * (1 - COALESCE("Book"."discount_percent", 0) / 100.0))');
+        const finalPriceSql = sequelize.literal(pricing.effectiveSql('"Book"', pricingAt));
         const totalSoldSql = sequelize.literal(`COALESCE((
             SELECT SUM(oi.quantity)
             FROM order_item oi
@@ -303,10 +308,14 @@ class CatalogService {
             ];
         }
 
+        if (context.flashSaleId) order = [
+            [sequelize.literal('(SELECT fsi.display_order FROM flash_sale_item fsi WHERE fsi.book_id = "Book".book_id AND fsi.flash_sale_id = ' + Number(context.flashSaleId) + ')'), 'ASC'],
+            ['book_id', 'ASC']
+        ];
         const { rows, count } = await Book.findAndCountAll({
             where,
             attributes: { 
-                include: [[totalSoldSql, 'total_sold']],
+                include: [[totalSoldSql, 'total_sold'], ...pricing.attributes(pricingAt)],
                 exclude: ['embedding'] 
             },
             include: [
@@ -330,7 +339,7 @@ class CatalogService {
         // Bổ sung final_price, total_sold và cờ is_new (<= 7 ngày) cho từng cuốn sách
         const books = rows.map(b => {
             const json = b.toJSON();
-            json.final_price = this.calculateFinalPrice(json.price, json.discount_percent);
+            Object.assign(json, pricing.decorate(json));
             json.total_sold = Number(json.total_sold) || 0;
             json.is_new = json.created_at ? new Date(json.created_at) >= sevenDaysAgo : false;
             return json;
@@ -398,6 +407,7 @@ class CatalogService {
      * Lấy chi tiết một cuốn sách công khai
      */
     async getBookById(bookId) {
+        const pricingAt = await pricing.now();
         const totalSoldSql = sequelize.literal(`COALESCE((
             SELECT SUM(oi.quantity)
             FROM order_item oi
@@ -412,7 +422,7 @@ class CatalogService {
                 is_active: true
             },
             attributes: { 
-                include: [[totalSoldSql, 'total_sold']],
+                include: [[totalSoldSql, 'total_sold'], ...pricing.attributes(pricingAt)],
                 exclude: ['embedding'] 
             },
             include: [
@@ -437,7 +447,7 @@ class CatalogService {
         }
 
         const json = book.toJSON();
-        json.final_price = this.calculateFinalPrice(json.price, json.discount_percent);
+        Object.assign(json, pricing.decorate(json));
         json.total_sold = Number(json.total_sold) || 0;
         return json;
     }
@@ -447,6 +457,7 @@ class CatalogService {
      */
     async getRelatedBooks(bookId, categoryId, limit = 6) {
         if (!categoryId) return [];
+        const pricingAt = await pricing.now();
 
         const rows = await Book.findAll({
             where: {
@@ -454,7 +465,7 @@ class CatalogService {
                 book_id: { [Op.ne]: bookId },
                 is_active: true
             },
-            attributes: { exclude: ['embedding'] },
+            attributes: { exclude: ['embedding'], include: pricing.attributes(pricingAt) },
             include: [
                 { model: Category, as: 'category', attributes: ['category_id', 'category_name'] },
                 { model: Inventory, as: 'inventory', attributes: ['stock_quantity'] },
@@ -466,7 +477,7 @@ class CatalogService {
 
         return rows.map(b => {
             const json = b.toJSON();
-            json.final_price = this.calculateFinalPrice(json.price, json.discount_percent);
+            Object.assign(json, pricing.decorate(json));
             return json;
         });
     }

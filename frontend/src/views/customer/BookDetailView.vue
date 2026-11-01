@@ -195,11 +195,11 @@
               <div class="mb-3">
                 <div class="d-flex align-items-center gap-3">
                   <span class="text-danger fw-bold fs-2">{{ formatCurrency(book.final_price) }}</span>
-                  <span v-if="book.discount_percent > 0" class="text-muted text-decoration-line-through">
+                  <span v-if="(book.effective_discount_percent ?? book.discount_percent) > 0" class="text-muted text-decoration-line-through">
                     {{ formatCurrency(book.price) }}
                   </span>
-                  <span v-if="book.discount_percent > 0" class="badge bg-danger">
-                    -{{ Math.round(book.discount_percent) }}%
+                  <span v-if="(book.effective_discount_percent ?? book.discount_percent) > 0" class="badge bg-danger">
+                    -{{ Math.round((book.effective_discount_percent ?? book.discount_percent)) }}%
                   </span>
                 </div>
                 <div class="small text-danger mt-1">
@@ -454,13 +454,13 @@
                 <div class="mt-auto">
                   <div class="d-flex align-items-baseline gap-2 mb-1">
                     <span class="text-danger fw-bold fs-6">{{ formatCurrency(relBook.final_price) }}</span>
-                    <span v-if="relBook.discount_percent > 0" class="badge bg-danger" style="font-size: 11px;">
-                      -{{ Math.round(relBook.discount_percent) }}%
+                    <span v-if="(relBook.effective_discount_percent ?? relBook.discount_percent) > 0" class="badge bg-danger" style="font-size: 11px;">
+                      -{{ Math.round((relBook.effective_discount_percent ?? relBook.discount_percent)) }}%
                     </span>
                   </div>
 
                   <div 
-                    v-if="relBook.discount_percent > 0" 
+                    v-if="(relBook.effective_discount_percent ?? relBook.discount_percent) > 0"
                     class="text-muted text-decoration-line-through small" 
                     style="font-size: 12px; min-height: 18px;"
                   >

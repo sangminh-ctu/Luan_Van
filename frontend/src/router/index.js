@@ -6,6 +6,8 @@ import CustomerLayout from '@/layouts/CustomerLayout.vue'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 
 // Views
+import AdminFlashSaleView from '@/views/admin/FlashSaleView.vue'
+import FlashSaleView from '@/views/customer/FlashSaleView.vue'
 import HomeView from '@/views/customer/HomeView.vue'
 import CustomerBookListView from '@/views/customer/BookListView.vue'
 import BookDetailView from '@/views/customer/BookDetailView.vue'
@@ -41,6 +43,7 @@ const router = createRouter({
       component: CustomerLayout,
       children: [
         { path: '', name: 'home', component: HomeView },
+        { path: 'flash-sale', name: 'flash-sale', component: FlashSaleView },
         { path: 'books', name: 'customer-books', component: CustomerBookListView },
         { path: 'books/:id', name: 'book-detail', component: BookDetailView },
         { path: 'cart', name: 'cart', component: CartView, meta: { requiresAuth: true } },
@@ -70,6 +73,7 @@ const router = createRouter({
         { path: 'orders/:id', name: 'admin-order-detail', component: OrderDetailView },
         { path: 'shipments', name: 'admin-shipments', component: OrderListView },
         { path: 'users', name: 'admin-users', component: DashboardView },
+        { path: 'flash-sales', name: 'admin-flash-sales', component: AdminFlashSaleView },
         { path: 'vouchers', name: 'admin-vouchers', component: DashboardView },
       ]
     }

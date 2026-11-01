@@ -1,6 +1,6 @@
 const { sequelize } = require('../../config/database');
 const { CartItem, Book, BookImage, Inventory, Category } = require('../../models/associations');
-const catalogService = require('./catalog.service');
+const pricing = require('../pricing.service');
 
 class CartService {
     /**
@@ -24,6 +24,7 @@ class CartService {
             order: [['book_id', 'ASC']]
         });
 
+        const prices = await pricing.getEffectivePrices(items.map(item => item.book_id));
         let totalItems = 0;
         let totalQuantity = 0;
         let totalPrice = 0;
@@ -38,7 +39,8 @@ class CartService {
             const isOutOfStock = !isUnavailable && stock === 0;
             const exceedsStock = !isUnavailable && !isOutOfStock && raw.quantity > stock;
 
-            const finalPrice = book ? catalogService.calculateFinalPrice(book.price, book.discount_percent) : 0;
+            const priceInfo = prices.get(Number(raw.book_id));
+            const finalPrice = priceInfo?.effective_price || 0;
             const subtotal = finalPrice * raw.quantity;
 
             if (isUnavailable || isOutOfStock || exceedsStock) {
@@ -61,6 +63,11 @@ class CartService {
                     price: Number(book.price),
                     discount_percent: Number(book.discount_percent || 0),
                     final_price: finalPrice,
+                    effective_price: finalPrice,
+                    effective_discount_percent: priceInfo.effective_discount_percent,
+                    regular_price: priceInfo.regular_price,
+                    flash_sale_item_id: priceInfo.flash_sale_item_id,
+                    flash_end_at: priceInfo.flash_end_at,
                     category: book.category,
                     images: book.images,
                     stock_quantity: stock,

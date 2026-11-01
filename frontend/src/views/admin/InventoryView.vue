@@ -8,7 +8,7 @@
       </div>
       <div class="d-flex gap-2">
         <router-link to="/admin/stock-receipts" class="btn btn-outline-secondary shadow-sm">
-          <i class="bi bi-clock-history me-1"></i> Lịch sử Nhập / Xuất
+          <i class="bi bi-clock-history me-1"></i> Lịch sử Nhập kho
         </router-link>
         <router-link to="/admin/stock-receipts/create" class="btn btn-primary shadow-sm">
           <i class="bi bi-plus-circle me-1"></i> Lập phiếu nhập kho

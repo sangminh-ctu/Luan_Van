@@ -36,9 +36,10 @@ exports.getReceiptById = async (req, res) => {
 // 4. Lập Phiếu mới (Hỗ trợ auto_complete = true)
 exports.createReceipt = async (req, res) => {
     try {
-        const { type, supplier_name, note, details, auto_complete } = req.body;
+        const { type, supplier_id, supplier_name, note, details, auto_complete } = req.body;
         const newReceipt = await inventoryService.createReceipt({
             type,
+            supplier_id,
             supplier_name,
             note,
             details,

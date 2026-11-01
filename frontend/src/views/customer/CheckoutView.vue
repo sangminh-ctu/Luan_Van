@@ -30,6 +30,11 @@
     </div>
 
     <div class="container py-2" style="max-width: 1100px;">
+      <div v-if="priceChanges.length" class="alert alert-warning" role="alert">
+        <h6 class="fw-bold">Giá sách vừa thay đổi</h6>
+        <ul><li v-for="item in priceChanges" :key="item.book_id">{{ item.title }}: {{ formatCurrency(item.old_price) }} → {{ formatCurrency(item.new_price) }}</li></ul>
+        Tổng tiền đã được cập nhật. Vui lòng kiểm tra và bấm Đặt hàng lần nữa để xác nhận giá mới.
+      </div>
       <!-- Khung cảnh báo lỗi 409 khi có sách hết hàng / vượt tồn kho lúc bấm Đặt hàng -->
       <div
         v-if="conflictItems.length > 0"
@@ -321,6 +326,7 @@ const isSubmitting = ref(false);
 const loadedDefaultAddress = ref(null);
 const paymentMethod = ref('cod');
 const conflictItems = ref([]);
+const priceChanges = ref([]);
 
 const shippingConfig = reactive({
   free_shipping_threshold: 300000,
@@ -487,6 +493,7 @@ async function handlePlaceOrder() {
     isSubmitting.value = true;
     conflictItems.value = [];
 
+    const expectedPrices = Object.fromEntries(cartStore.selectedItems.map(item => [item.book_id, Number(item.book.effective_price ?? item.book.final_price)]));
     const addressId = await resolveAddressIdForOrder();
     if (!addressId) {
       isSubmitting.value = false;
@@ -496,6 +503,7 @@ async function handlePlaceOrder() {
     const payload = {
       book_ids: [...cartStore.selectedBookIds],
       address_id: addressId,
+      expected_prices: expectedPrices,
       payment_method: paymentMethod.value
     };
 
@@ -512,7 +520,12 @@ async function handlePlaceOrder() {
     const status = error.response?.status;
     const data = error.response?.data;
 
-    if (status === 409 && Array.isArray(data?.out_of_stock_items)) {
+    if (status === 409 && data?.code === 'PRICE_CHANGED') {
+      priceChanges.value = data.price_changes || [];
+      const refresh = await cartStore.fetchCart();
+      if (!refresh.success) triggerToast('Không thể tải giá mới. Vui lòng tải lại giỏ hàng trước khi đặt.', 'error');
+      window.scrollTo({top:0,behavior:'smooth'});
+    } else if (status === 409 && Array.isArray(data?.out_of_stock_items)) {
       conflictItems.value = data.out_of_stock_items;
       await cartStore.fetchCart();
       window.scrollTo({ top: 0, behavior: 'smooth' });
