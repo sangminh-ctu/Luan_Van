@@ -273,6 +273,27 @@
                 </select>
               </div>
 
+              <!-- Tag sách cố định (Sách mới, Độc quyền, Giới hạn) -->
+              <div class="mb-3">
+                <label class="form-label fw-bold text-secondary small d-block mb-1">Nhãn phân loại đặc biệt</label>
+                <div v-if="tagsList.length" class="d-flex flex-wrap gap-2">
+                  <button
+                    v-for="tag in tagsList"
+                    :key="tag.tag_id"
+                    type="button"
+                    class="btn btn-sm rounded-pill tag-chip"
+                    :style="tagChipStyle(tag, form.tag_ids.includes(tag.tag_id))"
+                    :aria-pressed="form.tag_ids.includes(tag.tag_id)"
+                    @click="toggleTag(tag.tag_id)"
+                  >
+                    <i v-if="form.tag_ids.includes(tag.tag_id)" class="bi bi-check-lg me-1"></i>{{ tag.tag_name }}
+                  </button>
+                </div>
+                <small class="text-muted d-block mt-1" style="font-size: 11px;">
+                  Sách gắn nhãn sẽ tự động hiển thị ở mục tương ứng trên Trang chủ.
+                </small>
+              </div>
+
               <div class="form-check form-switch pt-2">
                 <input class="form-check-input" type="checkbox" role="switch" id="activeSwitch" v-model="form.is_active">
                 <label class="form-check-label fw-bold small text-secondary" for="activeSwitch">Hiển thị bán trên website</label>
@@ -387,7 +408,8 @@ import {
   categoryService, 
   authorService, 
   publisherService,
-  supplierService
+  supplierService,
+  tagService
 } from '@/services/adminService'
 
 const route = useRoute()
@@ -403,6 +425,7 @@ const categoriesList = ref([])
 const authorsList = ref([])
 const publishersList = ref([])
 const suppliersList = ref([])
+const tagsList = ref([])
 
 // Form state
 const form = reactive({
@@ -422,6 +445,7 @@ const form = reactive({
   publisher_id: null,
   supplier_id: null,
   is_active: true,
+  tag_ids: [],
   authors: [{ author_id: '', role: 'author', searchKeyword: '', showDropdown: false }],
   images: []
 })
@@ -570,16 +594,18 @@ const getImageUrl = (url) => {
 // Load dropdowns
 const loadDropdowns = async () => {
   try {
-    const [cats, auths, pubs, sups] = await Promise.all([
+    const [cats, auths, pubs, sups, tags] = await Promise.all([
       categoryService.getAll(),
       authorService.getAll(),
       publisherService.getAll(),
-      supplierService.getOptions()
+      supplierService.getOptions(),
+      tagService.getAll().catch(() => [])
     ])
     categoriesList.value = cats
     authorsList.value = auths
     publishersList.value = pubs
     suppliersList.value = Array.isArray(sups) ? sups : (sups?.suppliers || sups?.data || [])
+    tagsList.value = Array.isArray(tags) ? tags : []
   } catch (error) {
     console.error('Lỗi tải danh mục dropdown:', error)
   }
@@ -609,6 +635,7 @@ const loadBookDetails = async (id) => {
       suppliersList.value.push(book.supplier)
     }
     form.is_active = book.is_active
+    form.tag_ids = (book.tags || []).map(t => t.tag_id)
 
     // Map tác giả
     if (book.book_authors && book.book_authors.length > 0) {
@@ -632,6 +659,18 @@ const loadBookDetails = async (id) => {
     alertMsg.value = 'Lỗi tải thông tin sách: ' + (error.response?.data?.message || error.message)
   }
 }
+
+// ===== Tag sách =====
+const toggleTag = (tagId) => {
+  const idx = form.tag_ids.indexOf(tagId)
+  if (idx === -1) form.tag_ids.push(tagId)
+  else form.tag_ids.splice(idx, 1)
+}
+
+// Tag đã chọn: nền màu tag; chưa chọn: viền màu tag
+const tagChipStyle = (tag, selected) => selected
+  ? { backgroundColor: tag.color, borderColor: tag.color, color: '#fff' }
+  : { backgroundColor: '#fff', borderColor: tag.color, color: tag.color }
 
 // Submit Form
 const handleSubmit = async () => {
@@ -693,5 +732,15 @@ onMounted(async () => {
 }
 .dropdown-item-author:hover {
   background-color: #f0f4f8;
+}
+.tag-chip {
+  border-width: 1.5px;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 2px 12px;
+  transition: transform 0.1s;
+}
+.tag-chip:hover {
+  transform: translateY(-1px);
 }
 </style>

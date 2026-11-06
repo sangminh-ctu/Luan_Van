@@ -151,9 +151,21 @@
             <div class="bg-white rounded-3 shadow-sm p-4 mb-3">
               
               <!-- Tiêu đề Sách -->
-              <h4 class="fw-semibold text-dark mb-3" style="line-height: 1.4;">
+              <h4 class="fw-semibold text-dark mb-2" style="line-height: 1.4;">
                 {{ book.title }}
               </h4>
+
+              <!-- Tag sách -->
+              <div v-if="book.tags && book.tags.length" class="d-flex flex-wrap gap-1 mb-3">
+                <span
+                  v-for="tag in book.tags"
+                  :key="tag.tag_id"
+                  class="badge rounded-pill px-2 py-1"
+                  :style="{ backgroundColor: tag.color }"
+                >
+                  {{ tag.tag_name }}
+                </span>
+              </div>
 
               <!-- Thông tin nhanh 2 cột (Hình 1) -->
               <div class="row g-2 small text-secondary mb-2">

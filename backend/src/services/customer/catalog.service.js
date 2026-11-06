@@ -1,7 +1,15 @@
 const pricing = require('../pricing.service');
 const { Op } = require('sequelize');
 const { sequelize } = require('../../config/database');
-const { Book, Category, Author, Publisher, Supplier, BookImage, Inventory } = require('../../models/associations');
+const { Book, Category, Author, Publisher, Supplier, BookImage, Inventory, Tag } = require('../../models/associations');
+
+// Sắp xếp tag theo display_order rồi theo tên
+const sortTags = (json) => {
+    if (Array.isArray(json.tags)) {
+        json.tags.sort((a, b) => a.display_order - b.display_order || a.tag_name.localeCompare(b.tag_name, 'vi'));
+    }
+    return json;
+};
 
 class CatalogService {
     /**
@@ -116,6 +124,15 @@ class CatalogService {
 
         const offset = (page - 1) * limit;
         const where = { is_active: true };
+        let selectedBookIds;
+        if (query.book_ids !== undefined) {
+            const { ids, invalid } = require('../site-config.validation');
+            if (typeof query.book_ids !== 'string' || !/^[1-9]\d*(,[1-9]\d*)*$/.test(query.book_ids)) {
+                throw invalid('Danh sách book_ids không hợp lệ.');
+            }
+            selectedBookIds = ids(query.book_ids.split(',').map(Number), 10, 'Sách tuyển chọn');
+            where.book_id = { [Op.in]: selectedBookIds };
+        }
         if(context.flashSaleId) where[Op.and] = [sequelize.literal(
             'EXISTS (SELECT 1 FROM flash_sale_item fsi WHERE fsi.book_id = "Book".book_id AND fsi.flash_sale_id = ' + Number(context.flashSaleId) + ')'
         )];
@@ -143,7 +160,7 @@ class CatalogService {
             const [descendantRows] = await sequelize.query(`
                 WITH RECURSIVE sub_categories AS (
                     SELECT category_id FROM category WHERE category_id = :targetCatId
-                    UNION ALL
+                    UNION
                     SELECT c.category_id FROM category c
                     INNER JOIN sub_categories sc ON c.parent_category_id = sc.category_id
                 )
@@ -221,10 +238,20 @@ class CatalogService {
             where.discount_percent = { [Op.gt]: 0 };
         }
 
-        // 11. Mốc 7 ngày cho Sách Mới
-        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-        if (query.is_new === 'true' || query.is_new === true) {
-            where.created_at = { [Op.gte]: sevenDaysAgo };
+        // 11. Lọc theo Tag cố định (Sách mới, Độc quyền, Giới hạn)
+        const filterTagName = query.tag ? String(query.tag).trim() : (query.is_new === 'true' || query.is_new === true ? 'Sách mới' : '');
+        if (filterTagName) {
+            const escapedTag = sequelize.escape(filterTagName.toLowerCase());
+            where[Op.and] = [
+                ...(where[Op.and] || []),
+                sequelize.literal(`EXISTS (
+                    SELECT 1 FROM book_tag bt
+                    INNER JOIN tag t ON t.tag_id = bt.tag_id
+                    WHERE bt.book_id = "Book"."book_id"
+                      AND t.is_active = true
+                      AND LOWER(t.tag_name) = ${escapedTag}
+                )`)
+            ];
         }
 
         // 12. Biểu thức tính giá sau giảm & tổng số lượng đã giao thành công (delivered)
@@ -312,6 +339,9 @@ class CatalogService {
             [sequelize.literal('(SELECT fsi.display_order FROM flash_sale_item fsi WHERE fsi.book_id = "Book".book_id AND fsi.flash_sale_id = ' + Number(context.flashSaleId) + ')'), 'ASC'],
             ['book_id', 'ASC']
         ];
+        if (selectedBookIds) order = [[sequelize.literal(
+            `array_position(ARRAY[${selectedBookIds.join(',')}]::integer[], "Book"."book_id")`
+        ), 'ASC']];
         const { rows, count } = await Book.findAndCountAll({
             where,
             attributes: { 
@@ -328,7 +358,8 @@ class CatalogService {
                 },
                 { model: Publisher, as: 'publisher', attributes: ['publisher_id', 'publisher_name'] },
                 { model: Inventory, as: 'inventory', attributes: ['stock_quantity'] },
-                { model: BookImage, as: 'images', attributes: ['image_url', 'is_primary'], separate: true }
+                { model: BookImage, as: 'images', attributes: ['image_url', 'is_primary'], separate: true },
+                { model: Tag, as: 'tags', attributes: ['tag_id', 'tag_name', 'color', 'display_order'], where: { is_active: true }, required: false, through: { attributes: [] } }
             ],
             distinct: true,
             limit,
@@ -336,12 +367,13 @@ class CatalogService {
             order
         });
 
-        // Bổ sung final_price, total_sold và cờ is_new (<= 7 ngày) cho từng cuốn sách
+        // Bổ sung final_price, total_sold và cờ is_new (theo tag "Sách mới" do admin chọn) cho từng cuốn sách
         const books = rows.map(b => {
             const json = b.toJSON();
             Object.assign(json, pricing.decorate(json));
             json.total_sold = Number(json.total_sold) || 0;
-            json.is_new = json.created_at ? new Date(json.created_at) >= sevenDaysAgo : false;
+            sortTags(json);
+            json.is_new = Array.isArray(json.tags) && json.tags.some(t => t.tag_name.toLowerCase() === 'sách mới');
             return json;
         });
 
@@ -436,7 +468,8 @@ class CatalogService {
                     through: { attributes: ['role'] }
                 },
                 { model: Inventory, as: 'inventory', attributes: ['stock_quantity'] },
-                { model: BookImage, as: 'images', attributes: ['image_id', 'image_url', 'is_primary'] }
+                { model: BookImage, as: 'images', attributes: ['image_id', 'image_url', 'is_primary'] },
+                { model: Tag, as: 'tags', attributes: ['tag_id', 'tag_name', 'color', 'display_order'], where: { is_active: true }, required: false, through: { attributes: [] } }
             ]
         });
 
@@ -449,7 +482,7 @@ class CatalogService {
         const json = book.toJSON();
         Object.assign(json, pricing.decorate(json));
         json.total_sold = Number(json.total_sold) || 0;
-        return json;
+        return sortTags(json);
     }
 
     /**

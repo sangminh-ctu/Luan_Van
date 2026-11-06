@@ -75,6 +75,15 @@
           <li><router-link to="/admin/flash-sales" class="nav-link text-muted py-2 small" active-class="text-primary fw-bold bg-light"><i class="bi bi-lightning-charge me-1"></i>Flash Sale</router-link></li>
         </ul>
       </li>
+      <li class="nav-item mb-1">
+        <button type="button" class="nav-link text-dark d-flex justify-content-between align-items-center custom-nav-link w-100 border-0 bg-transparent" :aria-expanded="openMenu.settings" aria-controls="admin-settings-menu" @click="openMenu.settings = !openMenu.settings">
+          <span><i class="bi bi-gear me-2"></i> Quản lý cấu hình</span>
+          <i class="bi" :class="openMenu.settings ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size: 12px;"></i>
+        </button>
+        <ul id="admin-settings-menu" class="nav flex-column ms-3 mt-1" v-show="openMenu.settings">
+          <li class="nav-item"><router-link to="/admin/site-config" class="nav-link text-muted py-2 small" active-class="text-primary fw-bold bg-light"><i class="bi bi-dash me-1"></i> Cấu hình trang chủ</router-link></li>
+        </ul>
+      </li>
     </ul>
     
     <hr>
@@ -111,7 +120,8 @@ const openMenu = reactive({
   promotions: false,
   books: false,
   inventory: false,
-  orders: false
+  orders: false,
+  settings: false
 })
 
 // Tự động mở menu con nếu đang truy cập vào trang thuộc nhóm đó
@@ -120,6 +130,7 @@ watch(() => route.path, (newPath) => {
   if (newPath.startsWith('/admin/books') || ['/admin/categories', '/admin/authors', '/admin/publishers'].includes(newPath)) openMenu.books = true
   if (['/admin/inventory', '/admin/suppliers'].includes(newPath) || newPath.startsWith('/admin/stock-receipts')) openMenu.inventory = true
   if (newPath.startsWith('/admin/orders') || newPath.startsWith('/admin/shipments')) openMenu.orders = true
+  if (newPath.startsWith('/admin/site-config')) openMenu.settings = true
 }, { immediate: true })
 </script>
 

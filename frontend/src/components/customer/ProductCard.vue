@@ -6,13 +6,15 @@
   >
     <!-- Huy hiệu góc trên ảnh -->
     <div class="position-absolute top-0 start-0 m-2 d-flex flex-wrap gap-1" style="z-index: 2;">
-      <span v-if="book.is_new" class="badge bg-primary shadow-sm">
-        Mới
+      <span
+        v-for="tag in (book.tags || []).slice(0, 2)"
+        :key="tag.tag_id"
+        class="badge shadow-sm"
+        :style="{ backgroundColor: tag.color }"
+      >
+        {{ tag.tag_name }}
       </span>
-      <span v-if="(book.effective_discount_percent ?? book.discount_percent) > 0" class="badge bg-danger shadow-sm">
-        -{{ Math.round((book.effective_discount_percent ?? book.discount_percent)) }}%
-      </span>
-      <span v-else-if="(book.total_sold || 0) > 0" class="badge bg-danger shadow-sm">
+      <span v-if="(book.total_sold || 0) > 0 && !(book.tags && book.tags.length)" class="badge bg-danger shadow-sm">
         Bán chạy 🔥
       </span>
     </div>
@@ -76,10 +78,10 @@
             :style="{ width: progressPercent + '%', backgroundColor: '#ef9a9a' }"
           ></div>
           <div 
-            class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center fw-bold"
+            class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
             style="font-size: 10px; line-height: 1; color: #b71c1c;"
           >
-            <span v-if="(book.total_sold || 0) > 0">Đã bán {{ book.total_sold }}</span>
+            <span v-if="(book.total_sold || 0) > 0">Đã bán <strong class="fw-bolder">{{ book.total_sold }}</strong></span>
             <span v-else class="text-secondary fw-normal">Vừa mở bán</span>
           </div>
         </div>

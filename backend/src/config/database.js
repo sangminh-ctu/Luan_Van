@@ -9,7 +9,7 @@ const sequelize = new Sequelize(
         host: env.db.host,
         port: env.db.port,
         dialect: 'postgres',
-        logging: false, // Tắt log câu lệnh SQL ra terminal để đỡ rối mắt
+        logging: false, // Tắt log câu lệnh SQL ra terminal 
     }
 );
 

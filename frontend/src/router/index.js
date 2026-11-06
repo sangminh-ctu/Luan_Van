@@ -59,6 +59,7 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresAdmin: true },
       children: [
         { path: '', name: 'admin-dashboard', component: DashboardView },
+        { path: 'site-config', name: 'admin-site-config', component: () => import('@/views/admin/SiteConfigView.vue') },
         { path: 'books', name: 'admin-books', component: BookListView },
         { path: 'books/create', name: 'admin-books-create', component: BookFormView },
         { path: 'books/:id/edit', name: 'admin-books-edit', component: BookFormView },

@@ -89,7 +89,7 @@
               <div v-if="!Number(book.inventory?.stock_quantity)" class="small text-danger">
                 Tạm hết hàng
               </div>
-              <div v-else class="small text-secondary">Đã đặt {{ book.placed_count || 0 }}</div>
+              <div v-else class="small text-secondary">Đã đặt <strong class="text-dark">{{ book.placed_count || 0 }}</strong></div>
             </div>
           </RouterLink>
         </div>

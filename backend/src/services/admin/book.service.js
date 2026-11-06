@@ -8,8 +8,18 @@ const {
     Supplier,
     BookAuthor, 
     BookImage, 
-    Inventory 
+    Inventory,
+    Tag
 } = require('../../models/associations');
+const tagService = require('./tag.service');
+
+// Tag gắn với sách (bỏ cột của bảng nối)
+const TAG_INCLUDE = {
+    model: Tag,
+    as: 'tags',
+    attributes: ['tag_id', 'tag_name', 'color', 'display_order', 'is_active'],
+    through: { attributes: [] }
+};
 
 class BookService {
     /**
@@ -89,7 +99,8 @@ class BookService {
                     include: [{ model: Author, as: 'author', attributes: ['author_id', 'author_name'] }]
                 },
                 { model: BookImage, as: 'images' },
-                { model: Inventory, as: 'inventory', attributes: ['stock_quantity', 'last_updated'] }
+                { model: Inventory, as: 'inventory', attributes: ['stock_quantity', 'last_updated'] },
+                TAG_INCLUDE
             ],
             distinct: true,
             limit,
@@ -123,7 +134,8 @@ class BookService {
                     include: [{ model: Author, as: 'author' }]
                 },
                 { model: BookImage, as: 'images' },
-                { model: Inventory, as: 'inventory' }
+                { model: Inventory, as: 'inventory' },
+                TAG_INCLUDE
             ]
         });
         return book;
@@ -139,7 +151,7 @@ class BookService {
                 title, isbn, cover_type, price, discount_percent,
                 description, publication_year, page_count, weight,
                 length, width, height,
-                category_id, publisher_id, supplier_id, authors, images
+                category_id, publisher_id, supplier_id, authors, images, tag_ids
             } = data;
 
             if (supplier_id) {
@@ -207,6 +219,9 @@ class BookService {
                 stock_quantity: 0
             }, { transaction });
 
+            // 5. Gắn tag sách
+            await tagService.setBookTags(bookId, tag_ids, transaction);
+
             await transaction.commit();
 
             // Trả về cuốn sách vừa tạo kèm đầy đủ quan hệ
@@ -234,7 +249,7 @@ class BookService {
                 title, isbn, cover_type, price, discount_percent,
                 description, publication_year, page_count, weight,
                 length, width, height,
-                category_id, publisher_id, supplier_id, is_active, authors, images
+                category_id, publisher_id, supplier_id, is_active, authors, images, tag_ids
             } = data;
 
             // Chỉ kiểm tra khi gán mới / đổi NCC; giữ nguyên NCC cũ (kể cả đã ngừng hợp tác) vẫn cho lưu
@@ -312,6 +327,9 @@ class BookService {
                     }
                 }
             }
+
+            // 4. Cập nhật tag (chỉ khi client gửi tag_ids)
+            await tagService.setBookTags(bookId, tag_ids, transaction);
 
             await transaction.commit();
             return await this.getBookById(bookId);

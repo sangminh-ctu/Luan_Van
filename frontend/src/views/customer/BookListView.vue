@@ -38,6 +38,9 @@
           <li v-else-if="route.query.on_sale === 'true'" class="breadcrumb-item active fw-bold text-danger">
             Sách đang giảm giá
           </li>
+          <li v-else-if="route.query.tag" class="breadcrumb-item active fw-bold text-danger">
+            {{ route.query.tag }}
+          </li>
           <li v-else-if="route.query.is_new === 'true'" class="breadcrumb-item active fw-bold text-danger">
             Sách mới
           </li>
@@ -684,7 +687,10 @@ const currentTitle = computed(() => {
     return `Kết quả tìm kiếm: "${searchKeyword.value}"`;
   }
   if (route.query.on_sale === 'true') return 'Sách Đang Giảm Giá';
-  if (route.query.is_new === 'true') return 'Sách Mới (7 ngày)';
+  if (route.query.tag === 'Độc quyền') return 'Sách Độc Quyền Chỉ Bán Tại BookStore';
+  if (route.query.tag === 'Giới hạn') return 'Ấn Bản Giới Hạn · Phiên Bản Sưu Tầm';
+  if (route.query.tag) return route.query.tag;
+  if (route.query.is_new === 'true') return 'Sách Mới Về';
   if (route.query.only_sold === 'true') return 'Sách Bán Chạy Nhất';
   return 'Tất Cả Sách';
 });
@@ -765,7 +771,11 @@ const activeChips = computed(() => {
   }
 
   if (route.query.is_new === 'true') {
-    chips.push({ key: 'is_new', label: 'Sách mới (7 ngày)' });
+    chips.push({ key: 'is_new', label: 'Sách mới' });
+  }
+
+  if (route.query.tag) {
+    chips.push({ key: 'tag', label: `Nhãn: ${route.query.tag}` });
   }
 
   if (route.query.only_sold === 'true') {
@@ -823,6 +833,7 @@ async function fetchBooks() {
     if (route.query.in_stock === 'true') params.in_stock = true;
     if (route.query.on_sale === 'true') params.on_sale = true;
     if (route.query.is_new === 'true') params.is_new = true;
+    if (route.query.tag) params.tag = route.query.tag;
     if (route.query.only_sold === 'true') params.only_sold = true;
     if (searchKeyword.value) params.search = searchKeyword.value;
 

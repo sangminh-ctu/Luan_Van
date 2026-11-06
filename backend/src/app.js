@@ -27,6 +27,7 @@ app.use('/api/auth', require('./routes/auth.routes'));
 // Customer & Public Routes
 app.use('/api/categories', require('./routes/customer/category.routes'));
 app.use('/api/books', require('./routes/customer/book.routes'));
+app.use('/api/site-config', require('./routes/customer/site-config.routes'));
 app.use('/api/cart', require('./routes/customer/cart.routes'));
 app.use('/api/addresses', require('./routes/customer/address.routes'));
 app.use('/api/orders', require('./routes/customer/order.routes'));
@@ -34,12 +35,14 @@ app.use('/api/orders', require('./routes/customer/order.routes'));
 app.use('/api/flash-sales', require('./routes/customer/flash-sale.routes'));
 
 // Admin Routes
+app.use('/api/admin/site-config', verifyToken, requireAdmin, require('./routes/admin/site-config.routes'));
 app.use('/api/admin/flash-sales', verifyToken, requireAdmin, require('./routes/admin/flash-sale.routes'));
 app.use('/api/admin/categories', verifyToken, requireAdmin, require('./routes/admin/category.routes'));
 app.use('/api/admin/authors', verifyToken, requireAdmin, require('./routes/admin/author.routes'));
 app.use('/api/admin/publishers', verifyToken, requireAdmin, require('./routes/admin/publisher.routes'));
 app.use('/api/admin/suppliers', verifyToken, requireAdmin, require('./routes/admin/supplier.routes'));
 app.use('/api/admin/books', verifyToken, requireAdmin, require('./routes/admin/book.routes'));
+app.use('/api/admin/tags', verifyToken, requireAdmin, require('./routes/admin/tag.routes'));
 app.use('/api/admin/orders', verifyToken, requireAdmin, require('./routes/admin/order.routes'));
 app.use('/api/admin', verifyToken, requireAdmin, require('./routes/admin/inventory.routes'));
 

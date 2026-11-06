@@ -30,6 +30,10 @@ export const supplierService = {
     delete: (id) => api.delete(`/admin/suppliers/${id}`).then(res => res.data)
 };
 
+export const tagService = {
+  getAll: () => api.get('/admin/tags').then(res => res.data)
+}
+
 export const bookService = {
     getAll: (params) => api.get('/admin/books', { params }).then(res => res.data),
     getById: (id) => api.get(`/admin/books/${id}`).then(res => res.data),

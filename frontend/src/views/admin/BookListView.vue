@@ -105,6 +105,15 @@
                   <span v-if="book.isbn">ISBN: {{ book.isbn }}</span>
                   <span v-else class="text-secondary opacity-50">Chưa có ISBN</span>
                 </div>
+                <div v-if="book.tags && book.tags.length" class="d-flex flex-wrap gap-1 mt-1">
+                  <span
+                    v-for="tag in book.tags"
+                    :key="tag.tag_id"
+                    class="badge rounded-pill"
+                    :class="{ 'opacity-50': !tag.is_active }"
+                    :style="{ backgroundColor: tag.color, fontSize: '10px' }"
+                  >{{ tag.tag_name }}</span>
+                </div>
               </td>
 
               <!-- Thể loại -->

@@ -78,6 +78,8 @@
         description="Khám phá những cuốn sách đang có giá ưu đãi."
         :query="discountQuery" empty-message="Hiện chưa có sách đang giảm giá." />
 
+      <HomeSpotlightSection />
+
       <!-- 5. KHỐI BEST SELLERS / BẢNG XẾP HẠNG (Hình 3 - Tinh chỉnh bằng Bootstrap) -->
       <div class="bg-white rounded-4 shadow-sm p-4 mb-5">
         <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
@@ -162,7 +164,7 @@
                   </span>
                   <div class="fw-bold text-dark text-truncate small" :title="book.title">{{ book.title }}</div>
                   <div class="text-muted" style="font-size: 11px;">
-                    <span v-if="(book.total_sold || 0) > 0">Đã bán {{ book.total_sold }} cuốn</span>
+                    <span v-if="(book.total_sold || 0) > 0">Đã bán <strong class="text-dark">{{ book.total_sold }}</strong> cuốn</span>
                     <span v-else>Sách mới</span>
                   </div>
                 </div>
@@ -188,7 +190,7 @@
                 <div class="col-sm-7 d-flex flex-column">
                   <div class="small text-muted mb-1">
                     <span v-if="(selectedTopBook.total_sold || 0) > 0">
-                      <i class="bi bi-bag-check text-danger me-1"></i>Đã bán {{ selectedTopBook.total_sold }} cuốn
+                      <i class="bi bi-bag-check text-danger me-1"></i>Đã bán <strong class="text-dark">{{ selectedTopBook.total_sold }}</strong> cuốn
                     </span>
                     <span v-else class="text-secondary">
                       <i class="bi bi-stars text-warning me-1"></i>Sách mới phát hành
@@ -215,14 +217,16 @@
                   </div>
 
                   <!-- Giá bán -->
-                  <div class="d-flex align-items-baseline gap-2 mb-3">
-                    <span class="text-danger fw-bold fs-4">{{ formatCurrency(selectedTopBook.final_price) }}</span>
-                    <span v-if="(selectedTopBook.effective_discount_percent ?? selectedTopBook.discount_percent) > 0" class="text-muted text-decoration-line-through small">
+                  <div class="mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="text-danger fw-bold fs-4">{{ formatCurrency(selectedTopBook.final_price) }}</span>
+                      <span v-if="(selectedTopBook.effective_discount_percent ?? selectedTopBook.discount_percent) > 0" class="badge bg-danger">
+                        -{{ Math.round((selectedTopBook.effective_discount_percent ?? selectedTopBook.discount_percent)) }}%
+                      </span>
+                    </div>
+                    <div v-if="(selectedTopBook.effective_discount_percent ?? selectedTopBook.discount_percent) > 0" class="text-muted text-decoration-line-through small">
                       {{ formatCurrency(selectedTopBook.price) }}
-                    </span>
-                    <span v-if="(selectedTopBook.effective_discount_percent ?? selectedTopBook.discount_percent) > 0" class="badge bg-danger">
-                      -{{ Math.round((selectedTopBook.effective_discount_percent ?? selectedTopBook.discount_percent)) }}%
-                    </span>
+                    </div>
                   </div>
 
                   <!-- Nút thêm vào giỏ hàng -->
@@ -251,8 +255,21 @@
       </div>
 
       <HomeBookShelf title="Sách Mới Về" icon="bi-stars"
-        description="Những cuốn sách được thêm vào cửa hàng trong 7 ngày gần đây."
-        :query="newestQuery" empty-message="Chưa có sách mới được thêm trong 7 ngày qua. Bạn có thể khám phá toàn bộ sách trong cửa hàng." />
+        description="Những cuốn sách mới phát hành được tuyển chọn."
+        :query="newestQuery" empty-message="Chưa có sách mới nào được gắn nhãn." />
+      <HomeBookShelf title="Sách Độc Quyền Chỉ Bán Tại BookStore" icon="bi-patch-check-fill"
+        description="Những tựa sách phát hành độc quyền chỉ có tại hệ thống BookStore."
+        :query="exclusiveQuery" empty-message="Hiện chưa có sách độc quyền." />
+      <HomeBookShelf
+        title="Ấn bản giới hạn"
+        badge-text="PHIÊN BẢN SƯU TẦM"
+        :icon-image="limitedIcon"
+        variant="limited"
+        description="Những ấn bản được phát hành với số lượng giới hạn, dành cho người yêu sách và nhà sưu tầm."
+        :query="limitedQuery"
+        empty-message="Hiện chưa có ấn bản giới hạn."
+        @add-to-cart="handleAddToCart"
+      />
       <HomeBookShelf v-if="collectionCategory" title="Văn Học Cho Cuối Tuần" icon="bi-bookmark-heart"
         description="Dành một khoảng lặng cho những câu chuyện và trang sách."
         :query="collectionQuery" empty-message="Bộ sưu tập văn học đang được cập nhật." />
@@ -276,7 +293,9 @@ import { useCartStore } from '@/stores/cartStore';
 import { useCategoryStore } from '@/stores/categoryStore';
 
 import FlashSaleSection from '@/components/customer/FlashSaleSection.vue';
+import HomeSpotlightSection from '@/components/customer/HomeSpotlightSection.vue';
 import HomeBookShelf from '@/components/customer/HomeBookShelf.vue';
+import limitedIcon from '@/assets/images/logo/Icon_SachGioihan_64x64.webp';
 
 const router = useRouter();
 const cartStore = useCartStore();
@@ -285,7 +304,9 @@ const categoryStore = useCategoryStore();
 // Trạng thái dữ liệu
 const categoriesList = ref([]);
 const discountQuery = { on_sale: 'true', sort: 'discount_desc' };
-const newestQuery = { is_new: 'true', sort: 'newest' };
+const newestQuery = { tag: 'Sách mới', sort: 'newest' };
+const exclusiveQuery = { tag: 'Độc quyền', sort: 'newest' };
+const limitedQuery = { tag: 'Giới hạn', sort: 'newest' };
 const collectionCategory = computed(() => categoriesList.value.find(cat => /văn học/i.test(cat.category_name)));
 const collectionQuery = computed(() => ({ category_id: collectionCategory.value?.category_id, sort: 'newest' }));
 const bestSellerLoading = ref(true);

@@ -105,7 +105,19 @@ FlashSale.belongsTo(User, { foreignKey: 'created_by', as: 'creator', onDelete: '
 FlashSaleItem.hasMany(OrderItem, { foreignKey: 'flash_sale_item_id', as: 'order_items', onDelete: 'RESTRICT' });
 OrderItem.belongsTo(FlashSaleItem, { foreignKey: 'flash_sale_item_id', as: 'flash_sale_item', onDelete: 'RESTRICT' });
 
-module.exports = { FlashSale, FlashSaleItem,
+// 11. Sách - Tag (N - N thông qua BookTag)
+const Tag = require('./Tag');
+const BookTag = require('./BookTag');
+Book.belongsToMany(Tag, { through: BookTag, foreignKey: 'book_id', otherKey: 'tag_id', as: 'tags' });
+Tag.belongsToMany(Book, { through: BookTag, foreignKey: 'tag_id', otherKey: 'book_id', as: 'books' });
+
+const { HomeSpotlight, HomeSpotlightBook, HomeSpotlightCategory } = require('./HomeSpotlight');
+HomeSpotlight.hasMany(HomeSpotlightBook, { foreignKey: 'spotlight_id', as: 'selected_books' });
+HomeSpotlight.hasMany(HomeSpotlightCategory, { foreignKey: 'spotlight_id', as: 'selected_categories' });
+HomeSpotlightBook.belongsTo(Book, { foreignKey: 'book_id', as: 'book' });
+HomeSpotlightCategory.belongsTo(Category, { foreignKey: 'category_id', as: 'category' });
+
+module.exports = { HomeSpotlight, HomeSpotlightBook, HomeSpotlightCategory, FlashSale, FlashSaleItem, Tag, BookTag,
     Book,
     Category,
     Author,
