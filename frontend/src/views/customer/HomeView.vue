@@ -46,7 +46,7 @@
         </div>
       </div>
 
-      <FlashSaleSection />
+      <FlashSaleSection @add-to-cart="handleAddToCart" />
 
       <!-- 3. DANH MỤC SẢN PHẨM (Dữ liệu thật từ DB) -->
       <div class="bg-white rounded-4 shadow-sm p-3 mb-4">

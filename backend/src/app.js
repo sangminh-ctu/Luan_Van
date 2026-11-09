@@ -37,6 +37,7 @@ app.use('/api/flash-sales', require('./routes/customer/flash-sale.routes'));
 // Admin Routes
 app.use('/api/admin/site-config', verifyToken, requireAdmin, require('./routes/admin/site-config.routes'));
 app.use('/api/admin/flash-sales', verifyToken, requireAdmin, require('./routes/admin/flash-sale.routes'));
+app.use('/api/admin/vouchers', verifyToken, requireAdmin, require('./routes/admin/voucher.routes'));
 app.use('/api/admin/categories', verifyToken, requireAdmin, require('./routes/admin/category.routes'));
 app.use('/api/admin/authors', verifyToken, requireAdmin, require('./routes/admin/author.routes'));
 app.use('/api/admin/publishers', verifyToken, requireAdmin, require('./routes/admin/publisher.routes'));
@@ -61,6 +62,7 @@ app.use((err, req, res, next) => {
         responseBody.out_of_stock_items = err.outOfStockItems;
     }
     if (err.code) responseBody.code = err.code;
+    if (err.fieldErrors) responseBody.fieldErrors = err.fieldErrors;
     if (err.priceChanges) responseBody.price_changes = err.priceChanges;
     res.status(status).json(responseBody);
 });

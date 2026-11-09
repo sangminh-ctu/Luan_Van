@@ -224,7 +224,7 @@ async function current(query = {}) {
     };
   const catalog = require("./customer/catalog.service");
   const result = await catalog.getBooks(
-    { page: query.page || 1, limit: 10, sort: "newest" },
+    { page: query.page || 1, limit: query.limit || 24, sort: "newest" },
     { at, flashSaleId: sale.flash_sale_id },
   );
   const sold = await sequelize.query(

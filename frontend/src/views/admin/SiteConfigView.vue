@@ -2,9 +2,9 @@
   <div>
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
       <div>
-        <h2 class="fw-bold">Cấu hình trang chủ</h2>
+        <h2 class="fw-bold">Sách theo tháng</h2>
         <p class="text-secondary mb-0">
-          Quản lý khối sách tuyển chọn và các tab danh mục trên trang chủ.
+          Quản lý khối sách theo tháng, banner sự kiện và các tab danh mục trên trang chủ.
         </p>
       </div>
       <div class="d-flex gap-2">
