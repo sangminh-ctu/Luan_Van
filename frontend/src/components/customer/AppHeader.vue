@@ -204,6 +204,15 @@ onBeforeUnmount(() => {
                 </div>
                 <hr class="my-2">
                 <router-link
+                  to="/account"
+                  class="btn btn-light w-100 mb-2 text-start d-flex align-items-center gap-2 fw-semibold text-dark"
+                  style="border-radius: 8px; font-size: 14px;"
+                  @click="showAccountMenu = false"
+                >
+                  <i class="bi bi-person-circle text-danger"></i>
+                  <span>Thông tin tài khoản</span>
+                </router-link>
+                <router-link
                   to="/orders"
                   class="btn btn-light w-100 mb-2 text-start d-flex align-items-center gap-2 fw-semibold text-dark"
                   style="border-radius: 8px; font-size: 14px;"

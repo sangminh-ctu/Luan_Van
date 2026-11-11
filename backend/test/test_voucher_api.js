@@ -58,6 +58,7 @@ async function run() {
       "start_date",
       "end_date",
       "usage_limit",
+      "per_user_limit",
       "used_count",
       "status",
     ];
@@ -72,7 +73,7 @@ async function run() {
             discount_value numeric(12,2) NOT NULL CHECK (discount_value >= 0), max_discount_amount numeric(12,2),
             min_order_value numeric(12,2) NOT NULL DEFAULT 0,
             start_date timestamp NOT NULL, end_date timestamp NOT NULL CHECK (end_date > start_date),
-            usage_limit integer, used_count integer NOT NULL DEFAULT 0,
+            usage_limit integer, used_count integer NOT NULL DEFAULT 0, per_user_limit integer NOT NULL DEFAULT 1 CHECK (per_user_limit >= 1),
             status varchar(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active','expired','disabled'))
         ); CREATE TABLE orders (order_id serial PRIMARY KEY, voucher_id integer REFERENCES voucher(voucher_id) ON DELETE SET NULL ON UPDATE CASCADE)`);
     await check("Reject invalid values and forged usage count", async () => {
@@ -98,6 +99,10 @@ async function run() {
         { usage_limit: 0 },
         { usage_limit: 1.5 },
         { usage_limit: true },
+        { per_user_limit: 0 },
+        { per_user_limit: null },
+        { per_user_limit: true },
+        { per_user_limit: 1.5 },
         { used_count: 4 },
         { code: "BAD CODE" },
         { start_date: "2026-02-30T10:00:00" },

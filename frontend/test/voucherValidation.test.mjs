@@ -9,6 +9,7 @@ const form = {
   min_order_value: 100000,
   max_discount_amount: 50000,
   usage_limit: 20,
+  per_user_limit: 1,
   start_date: '2030-01-02T10:00:00',
   end_date: '2030-01-03T10:00:00',
   status: 'active',
@@ -58,4 +59,18 @@ test('Existing dates and usage history preserve editing restrictions', () => {
   )
   assert.ok(validate({ usage_limit: 10 }, { minimumLimit: 20, historyLocked: true }).usage_limit)
   assert.ok(validate({}, { originalEnd: '2030-01-04T10:00:00', historyLocked: true }).end_date)
+})
+
+test('Per-account limit is required and cannot be reduced after usage', () => {
+  for (const value of ['', null, 0, -1, 1.5, 2147483648])
+    assert.ok(validate({ per_user_limit: value }).per_user_limit)
+  assert.deepEqual(validate({ per_user_limit: 2 }), {})
+  assert.ok(
+    validate({ per_user_limit: 1 }, { historyLocked: true, originalPerUserLimit: 2 })
+      .per_user_limit,
+  )
+  assert.deepEqual(
+    validate({ per_user_limit: 3 }, { historyLocked: true, originalPerUserLimit: 2 }),
+    {},
+  )
 })

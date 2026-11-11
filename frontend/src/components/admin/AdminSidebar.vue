@@ -81,7 +81,7 @@
           <i class="bi" :class="openMenu.settings ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size: 12px;"></i>
         </button>
         <ul id="admin-settings-menu" class="nav flex-column ms-3 mt-1" v-show="openMenu.settings">
-          <li class="nav-item"><router-link to="/admin/site-config" class="nav-link text-muted py-2 small" active-class="text-primary fw-bold bg-light"><i class="bi bi-dash me-1"></i> Sách theo tháng</router-link></li>
+          <li class="nav-item"><router-link to="/admin/site-config" class="nav-link text-muted py-2 small" active-class="text-primary fw-bold bg-light">Sách theo tháng<i class="bi bi-dash me-1"></i></router-link></li>
         </ul>
       </li>
     </ul>

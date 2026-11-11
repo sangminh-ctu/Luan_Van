@@ -16,12 +16,17 @@ export const useAuthStore = defineStore('auth', () => {
         localStorage.setItem('user', JSON.stringify(newUser));
     }
 
+    function updateUser(newUser) {
+        user.value = { ...(user.value || {}), ...newUser };
+        localStorage.setItem('user', JSON.stringify(user.value));
+    }
+
     function logout() {
         token.value = null;
         user.value = null;
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        
+
         // Cải tiến: Nếu đang ở các trang quản trị thì đẩy về admin/login, ngược lại về /login chung
         if (router.currentRoute.value.path.startsWith('/admin')) {
             router.push('/admin/login');
@@ -30,5 +35,5 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
-    return { token, user, isLoggedIn, isAdmin, setAuth, logout };
+    return { token, user, isLoggedIn, isAdmin, setAuth, updateUser, logout };
 });

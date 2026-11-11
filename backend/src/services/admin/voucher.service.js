@@ -138,6 +138,20 @@ function validate(data) {
       "usage_limit",
     );
   const status = data.status ?? "active";
+  const per_user_limit =
+    data.per_user_limit === undefined ? 1 : Number(data.per_user_limit);
+  if (
+    !["string", "number"].includes(typeof (data.per_user_limit ?? 1)) ||
+    !/^\d+$/.test(String(data.per_user_limit ?? 1)) ||
+    !Number.isInteger(per_user_limit) ||
+    per_user_limit < 1 ||
+    per_user_limit > 2147483647
+  )
+    fail(
+      "Lượt mỗi tài khoản phải là số nguyên từ 1 đến 2.147.483.647.",
+      400,
+      "per_user_limit",
+    );
   if (!["active", "disabled", "expired"].includes(status))
     fail("Vui lòng chọn trạng thái hợp lệ.", 400, "status");
   return {
@@ -149,6 +163,7 @@ function validate(data) {
     start_date,
     end_date,
     usage_limit,
+    per_user_limit,
     status,
   };
 }
@@ -253,6 +268,12 @@ async function save(id, data) {
         old = await lock(id, transaction);
         if (data.start_now) fail("Chỉ được chọn áp dụng ngay khi tạo mã mới");
         if (old.has_history) {
+          if (payload.per_user_limit < old.per_user_limit)
+            fail(
+              "Mã đã có lịch sử sử dụng. Chỉ được tăng lượt dùng mỗi tài khoản.",
+              409,
+              "per_user_limit",
+            );
           for (const key of [
             "code",
             "discount_type",

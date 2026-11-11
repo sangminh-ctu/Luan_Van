@@ -64,6 +64,7 @@ app.use((err, req, res, next) => {
     if (err.code) responseBody.code = err.code;
     if (err.fieldErrors) responseBody.fieldErrors = err.fieldErrors;
     if (err.priceChanges) responseBody.price_changes = err.priceChanges;
+    if (err.quote) responseBody.quote = err.quote;
     res.status(status).json(responseBody);
 });
 

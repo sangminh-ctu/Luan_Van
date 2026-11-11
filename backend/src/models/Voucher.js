@@ -21,6 +21,7 @@ module.exports = sequelize.define(
     start_date: { type: DataTypes.DATE, allowNull: false },
     end_date: { type: DataTypes.DATE, allowNull: false },
     usage_limit: DataTypes.INTEGER,
+    per_user_limit: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 },
     used_count: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
     status: {
       type: DataTypes.STRING(20),

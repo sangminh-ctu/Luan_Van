@@ -16,6 +16,14 @@ const canonicalDate = (value) => {
 
 export function validateVoucherForm(form, context, now) {
   const errors = {}
+  if (
+    !/^\d+$/.test(String(form.per_user_limit)) ||
+    Number(form.per_user_limit) < 1 ||
+    Number(form.per_user_limit) > 2147483647
+  )
+    errors.per_user_limit = 'Nhập lượt dùng mỗi tài khoản là số nguyên từ 1 đến 2.147.483.647.'
+  else if (context.historyLocked && Number(form.per_user_limit) < context.originalPerUserLimit)
+    errors.per_user_limit = `Mã đã có lịch sử sử dụng. Lượt mỗi tài khoản phải từ ${context.originalPerUserLimit} trở lên.`
   const code = String(form.code ?? '').trim()
   if (!code) errors.code = 'Vui lòng nhập mã giảm giá, ví dụ SACHMOI10.'
   else if (!/^[A-Za-z0-9_-]{1,50}$/.test(code))

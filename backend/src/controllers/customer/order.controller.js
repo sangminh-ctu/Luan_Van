@@ -31,6 +31,14 @@ exports.createOrder = async (req, res, next) => {
     }
 };
 
+exports.preview = async (req, res, next) => {
+    try {
+        ensureCustomer(req);
+        const quote = await orderService.preview(req.user.user_id || req.user.id, req.body);
+        res.json(quote);
+    } catch (error) { next(error); }
+};
+
 exports.getMyOrders = async (req, res, next) => {
     try {
         ensureCustomer(req);

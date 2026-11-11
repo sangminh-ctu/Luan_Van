@@ -173,6 +173,7 @@
                 Phí vận chuyển: {{ order.shipping_fee === 0 ? 'Miễn phí' : formatCurrency(order.shipping_fee) }}
               </div>
               <div class="mb-2">
+                <div v-if="order.voucher_id" class="small text-success mb-1">Mã {{ order.voucher?.code }}: −{{ formatCurrency(order.voucher_discount_amount) }}</div>
                 <span class="text-secondary me-2">Tổng số tiền:</span>
                 <span class="fs-5 fw-bold text-danger">{{ formatCurrency(order.total_amount) }}</span>
               </div>

@@ -112,6 +112,9 @@
                   <small v-if="voucher.remaining_uses !== null" class="text-muted"
                     >Còn {{ voucher.remaining_uses }} lượt</small
                   >
+                  <small class="d-block text-muted"
+                    >{{ voucher.per_user_limit }} lượt / tài khoản</small
+                  >
                 </td>
                 <td>
                   <span class="badge" :class="states[voucher.effective_status]?.badge">{{
@@ -362,6 +365,34 @@
                 <div v-if="editId" class="form-text">Đã dùng: {{ usedCount }} lượt.</div>
               </div>
               <div class="col-md-6">
+                <label for="per-user-limit" class="form-label"
+                  >Lượt dùng mỗi tài khoản <span class="text-danger">*</span></label
+                >
+                <input
+                  id="per-user-limit"
+                  v-model="form.per_user_limit"
+                  v-bind="fieldProps('per_user_limit')"
+                  type="number"
+                  :min="historyLocked ? originalPerUserLimit : 1"
+                  max="2147483647"
+                  step="1"
+                  required
+                  class="form-control"
+                  :disabled="saving"
+                />
+                <div
+                  v-if="fieldError('per_user_limit')"
+                  id="per-user-limit-error"
+                  class="invalid-feedback d-block"
+                  aria-live="polite"
+                >
+                  {{ fieldError('per_user_limit') }}
+                </div>
+                <div class="form-text">
+                  Mặc định 1 lần mỗi tài khoản. Đơn bị hủy sẽ được hoàn lượt.
+                </div>
+              </div>
+              <div class="col-md-6">
                 <label for="start-date" class="form-label"
                   >Bắt đầu <span class="text-danger">*</span></label
                 ><input
@@ -550,6 +581,7 @@ const historyLocked = ref(false),
   originalLimit = ref(null),
   originalEnd = ref('')
 const originalStart = ref('')
+const originalPerUserLimit = ref(1)
 const vietnamNow = () => new Date(Date.now() + 7 * 3600000).toISOString().slice(0, 19)
 const currentTime = ref(vietnamNow())
 let clockTimer
@@ -597,6 +629,7 @@ const fieldIds = {
   min_order_value: 'min-order',
   max_discount_amount: 'max-discount',
   usage_limit: 'usage-limit',
+  per_user_limit: 'per-user-limit',
   start_date: 'start-date',
   end_date: 'end-date',
   status: 'form-status',
@@ -609,6 +642,7 @@ const validationErrors = computed(() =>
       originalEnd: originalEnd.value,
       minimumLimit: minimumLimit.value,
       historyLocked: historyLocked.value,
+      originalPerUserLimit: originalPerUserLimit.value,
     },
     currentTime.value,
   ),
@@ -694,6 +728,7 @@ async function openForm(voucher) {
     originalLimit.value = row?.usage_limit ?? null
     originalEnd.value = row?.end_date ?? ''
     originalStart.value = row?.start_date ?? ''
+    originalPerUserLimit.value = row?.per_user_limit ?? 1
     currentTime.value = vietnamNow()
     const later = new Date(Date.now() + 7 * 3600000 + 7 * 86400000).toISOString().slice(0, 19)
     Object.assign(form, {
@@ -703,6 +738,7 @@ async function openForm(voucher) {
       max_discount_amount: row?.max_discount_amount ?? null,
       min_order_value: row?.min_order_value ?? 0,
       usage_limit: row?.usage_limit ?? null,
+      per_user_limit: row?.per_user_limit ?? 1,
       start_date: row?.start_date ?? '',
       start_now: false,
       end_date: row?.end_date ?? later,

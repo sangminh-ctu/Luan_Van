@@ -1,5 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { Op, QueryTypes } = require('sequelize');
+const { sequelize } = require('../config/database');
 const User = require('../models/user.model');
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -157,7 +159,8 @@ exports.adminLogin = async (req, res) => {
 
 exports.me = async (req, res) => {
     try {
-        const user = await User.findByPk(req.user.user_id, {
+        const userId = req.user.user_id;
+        const user = await User.findByPk(userId, {
             attributes: { exclude: ['password'] }
         });
 
@@ -165,9 +168,140 @@ exports.me = async (req, res) => {
             return res.status(401).json({ message: "Không tìm thấy thông tin người dùng" });
         }
 
-        return res.status(200).json({ user });
+        // Thống kê đơn hàng trong năm hiện tại và danh sách voucher khả dụng
+        const [orderStats] = await sequelize.query(
+            `SELECT
+                COUNT(*)::int AS order_count,
+                COALESCE(SUM(CASE WHEN order_status <> 'cancelled' THEN total_amount ELSE 0 END), 0)::numeric AS total_spent
+             FROM orders
+             WHERE user_id = :userId
+               AND EXTRACT(YEAR FROM order_date) = EXTRACT(YEAR FROM CURRENT_TIMESTAMP)`,
+            { replacements: { userId }, type: QueryTypes.SELECT }
+        );
+
+        const vouchers = await sequelize.query(
+            `SELECT
+                v.voucher_id,
+                v.code,
+                v.discount_type,
+                v.discount_value,
+                v.max_discount_amount,
+                v.min_order_value,
+                to_char(v.start_date, 'YYYY-MM-DD"T"HH24:MI:SS') AS start_date,
+                to_char(v.end_date, 'YYYY-MM-DD"T"HH24:MI:SS') AS end_date,
+                v.usage_limit,
+                v.used_count
+             FROM voucher v
+             WHERE v.status = 'active'
+               AND v.start_date <= (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Ho_Chi_Minh')
+               AND v.end_date > (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Ho_Chi_Minh')
+               AND (v.usage_limit IS NULL OR v.used_count < v.usage_limit)
+             ORDER BY v.end_date ASC`,
+            { type: QueryTypes.SELECT }
+        );
+
+        return res.status(200).json({
+            user,
+            stats: {
+                year: new Date().getFullYear(),
+                order_count: Number(orderStats?.order_count || 0),
+                total_spent: Number(orderStats?.total_spent || 0)
+            },
+            vouchers
+        });
     } catch (error) {
         console.error("Me Error:", error);
+        return res.status(500).json({ message: "Lỗi máy chủ nội bộ" });
+    }
+};
+
+exports.updateProfile = async (req, res) => {
+    try {
+        const userId = req.user.user_id;
+        const user = await User.findByPk(userId);
+        if (!user) {
+            return res.status(404).json({ message: "Không tìm thấy người dùng" });
+        }
+
+        let { full_name, phone, email } = req.body;
+        full_name = typeof full_name === 'string' ? full_name.trim() : '';
+        phone = typeof phone === 'string' ? phone.trim() : '';
+        email = typeof email === 'string' ? email.trim().toLowerCase() : user.email;
+
+        if (!full_name) {
+            return res.status(400).json({ message: "Vui lòng nhập họ và tên" });
+        }
+        if (phone && !phoneRegex.test(phone)) {
+            return res.status(400).json({ message: "Số điện thoại không hợp lệ (gồm 10 chữ số bắt đầu bằng 0 hoặc +84)" });
+        }
+        if (!email || !emailRegex.test(email)) {
+            return res.status(400).json({ message: "Email không đúng định dạng" });
+        }
+
+        if (email !== user.email) {
+            const existingEmail = await User.findOne({
+                where: {
+                    email,
+                    user_id: { [Op.ne]: userId }
+                }
+            });
+            if (existingEmail) {
+                return res.status(409).json({ message: "Email này đã được sử dụng bởi tài khoản khác" });
+            }
+        }
+
+        user.full_name = full_name;
+        user.phone = phone || null;
+        user.email = email;
+        await user.save();
+
+        const userResponse = {
+            user_id: user.user_id,
+            full_name: user.full_name,
+            email: user.email,
+            phone: user.phone,
+            role: user.role,
+            reward_points_balance: user.reward_points_balance
+        };
+
+        return res.status(200).json({
+            message: "Cập nhật thông tin tài khoản thành công",
+            user: userResponse
+        });
+    } catch (error) {
+        console.error("Update Profile Error:", error);
+        return res.status(500).json({ message: "Lỗi máy chủ nội bộ" });
+    }
+};
+
+exports.changePassword = async (req, res) => {
+    try {
+        const userId = req.user.user_id;
+        const { current_password, new_password } = req.body;
+
+        if (!current_password || !new_password) {
+            return res.status(400).json({ message: "Vui lòng nhập mật khẩu hiện tại và mật khẩu mới" });
+        }
+        if (String(new_password).length < 6) {
+            return res.status(400).json({ message: "Mật khẩu mới phải từ 6 ký tự trở lên" });
+        }
+
+        const user = await User.findByPk(userId);
+        if (!user) {
+            return res.status(404).json({ message: "Không tìm thấy người dùng" });
+        }
+
+        const isMatch = await bcrypt.compare(String(current_password), user.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: "Mật khẩu hiện tại không chính xác" });
+        }
+
+        user.password = await bcrypt.hash(String(new_password), 10);
+        await user.save();
+
+        return res.status(200).json({ message: "Đổi mật khẩu thành công" });
+    } catch (error) {
+        console.error("Change Password Error:", error);
         return res.status(500).json({ message: "Lỗi máy chủ nội bộ" });
     }
 };

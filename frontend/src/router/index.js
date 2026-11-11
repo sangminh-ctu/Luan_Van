@@ -48,7 +48,8 @@ const router = createRouter({
         { path: 'books/:id', name: 'book-detail', component: BookDetailView },
         { path: 'cart', name: 'cart', component: CartView, meta: { requiresAuth: true } },
         { path: 'checkout', name: 'checkout', component: CheckoutView, meta: { requiresAuth: true } },
-        { path: 'orders', name: 'customer-orders', component: OrderTrackingView, meta: { requiresAuth: true } }
+        { path: 'orders', name: 'customer-orders', component: OrderTrackingView, meta: { requiresAuth: true } },
+        { path: 'account', name: 'customer-account', component: () => import('@/views/customer/AccountView.vue'), meta: { requiresAuth: true } }
       ]
     },
 
