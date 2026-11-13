@@ -3,6 +3,8 @@ const jwt = require('jsonwebtoken');
 const { Op, QueryTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 const User = require('../models/user.model');
+const membershipService = require('../services/membership.service');
+const voucherService = require('../services/voucher.service');
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const phoneRegex = /^(0|\+84)\d{9}$/;
@@ -171,43 +173,28 @@ exports.me = async (req, res) => {
         // Thống kê đơn hàng trong năm hiện tại và danh sách voucher khả dụng
         const [orderStats] = await sequelize.query(
             `SELECT
-                COUNT(*)::int AS order_count,
-                COALESCE(SUM(CASE WHEN order_status <> 'cancelled' THEN total_amount ELSE 0 END), 0)::numeric AS total_spent
+                COUNT(*) FILTER (WHERE order_status = 'delivered' AND payment_status = 'paid')::int AS order_count,
+                COALESCE(SUM(CASE WHEN order_status = 'delivered' AND payment_status = 'paid' THEN GREATEST(0, subtotal - voucher_discount_amount - points_discount) ELSE 0 END), 0)::numeric AS total_spent
              FROM orders
              WHERE user_id = :userId
-               AND EXTRACT(YEAR FROM order_date) = EXTRACT(YEAR FROM CURRENT_TIMESTAMP)`,
+               AND EXTRACT(YEAR FROM order_date) = EXTRACT(YEAR FROM CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Ho_Chi_Minh')`,
             { replacements: { userId }, type: QueryTypes.SELECT }
         );
 
-        const vouchers = await sequelize.query(
-            `SELECT
-                v.voucher_id,
-                v.code,
-                v.discount_type,
-                v.discount_value,
-                v.max_discount_amount,
-                v.min_order_value,
-                to_char(v.start_date, 'YYYY-MM-DD"T"HH24:MI:SS') AS start_date,
-                to_char(v.end_date, 'YYYY-MM-DD"T"HH24:MI:SS') AS end_date,
-                v.usage_limit,
-                v.used_count
-             FROM voucher v
-             WHERE v.status = 'active'
-               AND v.start_date <= (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Ho_Chi_Minh')
-               AND v.end_date > (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Ho_Chi_Minh')
-               AND (v.usage_limit IS NULL OR v.used_count < v.usage_limit)
-             ORDER BY v.end_date ASC`,
-            { type: QueryTypes.SELECT }
-        );
+        const offers = await voucherService.customerOffers(userId);
+        const tiers = await membershipService.list();
 
         return res.status(200).json({
             user,
             stats: {
-                year: new Date().getFullYear(),
+                year: Number(new Intl.DateTimeFormat('en', { year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date())),
                 order_count: Number(orderStats?.order_count || 0),
                 total_spent: Number(orderStats?.total_spent || 0)
             },
-            vouchers
+            vouchers: offers.vouchers,
+            available_voucher_count: offers.available_count,
+            membership: offers.membership,
+            tiers
         });
     } catch (error) {
         console.error("Me Error:", error);

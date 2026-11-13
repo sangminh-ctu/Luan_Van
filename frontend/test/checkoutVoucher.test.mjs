@@ -169,3 +169,48 @@ test('Order submission uses the server quote and sends one applied code', async 
   })
   assert.equal(pushes[0].path, '/orders')
 })
+
+test('Suggested voucher is applied through a new preview without placing an order', async (t) => {
+  const { state, api, created } = await harness(t)
+  api.voucherSuggestions = async () => ({
+    suggestions: [
+      { voucher_id: 1, code: 'BEST', voucher_discount_amount: 20000, total_amount: 110000 },
+    ],
+  })
+  await state.loadSuggestions()
+  assert.equal(state.suggestions.value[0].code, 'BEST')
+  api.preview = async (payload) => {
+    assert.equal(payload.voucher_code, 'BEST')
+    return plain('BEST', 20000)
+  }
+  await state.applySuggested('BEST')
+  assert.equal(state.appliedCode.value, 'BEST')
+  assert.equal(state.totalAmount.value, 110000)
+  assert.equal(created.length, 0)
+})
+test('Suggestions become invalid when cart quantities change; late responses cannot restore them', async (t) => {
+  const { state, api, cart } = await harness(t)
+  const pending = deferred()
+  api.voucherSuggestions = () => pending.promise
+  const request = state.loadSuggestions()
+  cart.selectedItems[0].quantity = 2
+  await vue.nextTick()
+  pending.resolve({ suggestions: [{ voucher_id: 1, code: 'OLD' }] })
+  await request
+  assert.equal(state.suggestions.value.length, 0)
+  assert.equal(state.suggestionsLoaded.value, false)
+  assert.equal(state.suggestionBusy.value, false)
+})
+test('Empty suggestions and suggestion API failures preserve the current checkout quote', async (t) => {
+  const { state, api } = await harness(t)
+  api.voucherSuggestions = async () => ({ suggestions: [] })
+  await state.loadSuggestions()
+  assert.equal(state.suggestionsLoaded.value, true)
+  assert.equal(state.suggestions.value.length, 0)
+  api.voucherSuggestions = async () => {
+    throw { response: { data: { message: 'Không tải được ưu đãi' } } }
+  }
+  await state.loadSuggestions()
+  assert.match(state.suggestionError.value, /Không tải/)
+  assert.equal(state.quote.value.total_amount, 130000)
+})

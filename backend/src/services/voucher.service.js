@@ -1,5 +1,6 @@
 const { QueryTypes } = require("sequelize");
 const { sequelize } = require("../config/database");
+const membership = require("./membership.service");
 
 function fail(code, message, status = 409) {
   throw Object.assign(new Error(message), {
@@ -51,10 +52,16 @@ async function evaluate(
   if (!normalized) return { voucher: null, voucher_discount_amount: 0 };
   if (lock && !transaction)
     throw new Error("Voucher consumption requires a transaction");
+  const member = await membership.get(userId, {
+    transaction,
+    lockConfig: lock,
+  });
   const rows = await sequelize.query(
-    `SELECT *, to_char(start_date, 'YYYY-MM-DD"T"HH24:MI:SS.US') AS starts,
+    `SELECT v.*, t.level AS required_level, t.tier_name AS min_tier_name,
+        to_char(start_date, 'YYYY-MM-DD"T"HH24:MI:SS.US') AS starts,
         to_char(end_date, 'YYYY-MM-DD"T"HH24:MI:SS.US') AS ends
-        FROM voucher WHERE upper(btrim(code)) = :code ORDER BY voucher_id ${lock ? "FOR UPDATE" : ""}`,
+        FROM voucher v LEFT JOIN membership_tier t ON t.tier_id = v.min_tier_id
+        WHERE upper(btrim(code)) = :code ORDER BY voucher_id ${lock ? "FOR UPDATE OF v" : ""}`,
     {
       replacements: { code: normalized },
       type: QueryTypes.SELECT,
@@ -83,6 +90,11 @@ async function evaluate(
     fail("VOUCHER_NOT_STARTED", "Mã giảm giá chưa đến thời gian áp dụng.");
   if (row.status !== "active")
     fail("VOUCHER_INVALID", "Mã giảm giá không còn khả dụng.");
+  if (row.required_level && member.current_tier.level < row.required_level)
+    fail(
+      "VOUCHER_TIER_REQUIRED",
+      `Mã này dành cho thành viên ${row.min_tier_name} trở lên. Hạng hiện tại của bạn là ${member.current_tier.tier_name}.`,
+    );
   if (row.usage_limit !== null && row.used_count >= row.usage_limit)
     fail("VOUCHER_EXHAUSTED", "Mã giảm giá đã hết lượt sử dụng.");
   const [usage] = await sequelize.query(
@@ -112,6 +124,42 @@ async function evaluate(
       user_remaining_uses: row.per_user_limit - usage.count,
     },
     voucher_discount_amount: calculateDiscount(row, subtotal),
+  };
+}
+async function customerOffers(userId, { transaction } = {}) {
+  const member = await membership.get(userId, { transaction });
+  const rows = await sequelize.query(
+    `SELECT v.*, t.tier_name AS min_tier_name, t.level AS required_level,
+      to_char(v.start_date, 'YYYY-MM-DD"T"HH24:MI:SS') AS start_date,
+      to_char(v.end_date, 'YYYY-MM-DD"T"HH24:MI:SS') AS end_date,
+      usage.count AS user_used_count
+      FROM voucher v LEFT JOIN membership_tier t ON t.tier_id = v.min_tier_id
+      CROSS JOIN LATERAL (SELECT count(*)::int AS count FROM orders o
+          WHERE o.voucher_id = v.voucher_id AND o.user_id = :userId AND o.order_status <> 'cancelled') usage
+      WHERE v.status = 'active' AND v.start_date <= (clock_timestamp() AT TIME ZONE 'Asia/Ho_Chi_Minh')
+      AND v.end_date > (clock_timestamp() AT TIME ZONE 'Asia/Ho_Chi_Minh')
+      AND (v.usage_limit IS NULL OR v.used_count < v.usage_limit) AND usage.count < v.per_user_limit
+      ORDER BY v.end_date, v.code, v.voucher_id`,
+    { replacements: { userId }, transaction, type: QueryTypes.SELECT },
+  );
+  const vouchers = rows.map((row) => ({
+    ...row,
+    discount_value: Number(row.discount_value),
+    max_discount_amount:
+      row.max_discount_amount === null ? null : Number(row.max_discount_amount),
+    min_order_value: Number(row.min_order_value),
+    user_remaining_uses: row.per_user_limit - row.user_used_count,
+    eligible:
+      !row.required_level || member.current_tier.level >= row.required_level,
+    access_status:
+      row.required_level && member.current_tier.level < row.required_level
+        ? "tier_locked"
+        : "available",
+  }));
+  return {
+    membership: member,
+    vouchers,
+    available_count: vouchers.filter((v) => v.eligible).length,
   };
 }
 async function consume(voucherId, transaction) {
@@ -151,6 +199,7 @@ async function restore(voucherId, transaction) {
     );
 }
 module.exports = {
+  customerOffers,
   normalizeCode,
   calculateDiscount,
   evaluate,

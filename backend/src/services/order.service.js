@@ -31,7 +31,7 @@ const ADMIN_ALLOWED_TRANSITIONS = {
 };
 
 class OrderService {
-  async preview(userId, payload = {}) {
+  async preview(userId, payload = {}, existingTransaction = null) {
     const ids = payload.book_ids;
     if (
       !Array.isArray(ids) ||
@@ -44,73 +44,118 @@ class OrderService {
         { status: 400 },
       );
     const bookIds = [...new Set(ids.map(Number))].sort((a, b) => a - b);
-    return sequelize.transaction(
-      { isolationLevel: "REPEATABLE READ" },
-      async (transaction) => {
-        const [items] = await sequelize.query(
-          `SELECT c.book_id, c.quantity, b.title, b.is_active,
+    const build = async (transaction) => {
+      const [items] = await sequelize.query(
+        `SELECT c.book_id, c.quantity, b.title, b.is_active,
                 coalesce(i.stock_quantity, 0) AS stock_quantity FROM cart_item c
                 JOIN book b ON b.book_id = c.book_id LEFT JOIN inventory i ON i.book_id = b.book_id
                 WHERE c.user_id = :userId AND c.book_id IN (:ids) ORDER BY c.book_id`,
-          { replacements: { userId, ids: bookIds }, transaction },
-        );
-        if (items.length !== bookIds.length)
-          throw Object.assign(
-            new Error(
-              "Sản phẩm đã chọn không còn trong giỏ hàng. Vui lòng tải lại giỏ hàng.",
-            ),
-            { status: 409, code: "CART_CHANGED" },
-          );
-        if (
-          items.some(
-            (item) => !item.is_active || item.quantity > item.stock_quantity,
-          )
-        )
-          throw Object.assign(
-            new Error(
-              "Một số sản phẩm đã ngừng bán hoặc không đủ tồn kho. Vui lòng kiểm tra lại giỏ hàng.",
-            ),
-            { status: 409, code: "CART_CHANGED" },
-          );
-        const at = await pricing.now(transaction);
-        const prices = await pricing.getEffectivePrices(bookIds, {
-          transaction,
-          at,
-        });
-        const subtotal = items.reduce(
-          (sum, item) =>
-            sum +
-            Math.round(
-              prices.get(item.book_id).effective_price * item.quantity,
-            ),
-          0,
-        );
-        const applied = await vouchers.evaluate(
-          payload.voucher_code,
-          userId,
-          subtotal,
-          { transaction },
-        );
-        return {
-          ...applied,
-          subtotal,
-          shipping_fee: calculateShippingFee(subtotal),
-          total_amount:
-            subtotal -
-            applied.voucher_discount_amount +
-            calculateShippingFee(subtotal),
-          expected_prices: Object.fromEntries(
-            bookIds.map((id) => [id, prices.get(id).effective_price]),
+        { replacements: { userId, ids: bookIds }, transaction },
+      );
+      if (items.length !== bookIds.length)
+        throw Object.assign(
+          new Error(
+            "Sản phẩm đã chọn không còn trong giỏ hàng. Vui lòng tải lại giỏ hàng.",
           ),
-          items: items.map((item) => ({
-            book_id: item.book_id,
-            quantity: item.quantity,
-            title: item.title,
-            unit_price: prices.get(item.book_id).effective_price,
-            subtotal: Math.round(
-              prices.get(item.book_id).effective_price * item.quantity,
+          { status: 409, code: "CART_CHANGED" },
+        );
+      if (
+        items.some(
+          (item) => !item.is_active || item.quantity > item.stock_quantity,
+        )
+      )
+        throw Object.assign(
+          new Error(
+            "Một số sản phẩm đã ngừng bán hoặc không đủ tồn kho. Vui lòng kiểm tra lại giỏ hàng.",
+          ),
+          { status: 409, code: "CART_CHANGED" },
+        );
+      const at = await pricing.now(transaction);
+      const prices = await pricing.getEffectivePrices(bookIds, {
+        transaction,
+        at,
+      });
+      const subtotal = items.reduce(
+        (sum, item) =>
+          sum +
+          Math.round(prices.get(item.book_id).effective_price * item.quantity),
+        0,
+      );
+      const applied = await vouchers.evaluate(
+        payload.voucher_code,
+        userId,
+        subtotal,
+        { transaction },
+      );
+      return {
+        ...applied,
+        subtotal,
+        shipping_fee: calculateShippingFee(subtotal),
+        total_amount:
+          subtotal -
+          applied.voucher_discount_amount +
+          calculateShippingFee(subtotal),
+        expected_prices: Object.fromEntries(
+          bookIds.map((id) => [id, prices.get(id).effective_price]),
+        ),
+        items: items.map((item) => ({
+          book_id: item.book_id,
+          quantity: item.quantity,
+          title: item.title,
+          unit_price: prices.get(item.book_id).effective_price,
+          subtotal: Math.round(
+            prices.get(item.book_id).effective_price * item.quantity,
+          ),
+        })),
+      };
+    };
+    return existingTransaction
+      ? build(existingTransaction)
+      : sequelize.transaction({ isolationLevel: "REPEATABLE READ" }, build);
+  }
+  async voucherSuggestions(userId, payload = {}) {
+    return sequelize.transaction(
+      { isolationLevel: "REPEATABLE READ" },
+      async (transaction) => {
+        const quote = await this.preview(
+          userId,
+          { book_ids: payload.book_ids },
+          transaction,
+        );
+        const offers = await vouchers.customerOffers(userId, { transaction });
+        const suggestions = offers.vouchers
+          .filter((v) => v.eligible && quote.subtotal >= v.min_order_value)
+          .map((v) => ({
+            voucher_id: v.voucher_id,
+            code: v.code,
+            end_date: v.end_date,
+            min_order_value: v.min_order_value,
+            min_tier_name: v.min_tier_name,
+            user_remaining_uses: v.user_remaining_uses,
+            voucher_discount_amount: vouchers.calculateDiscount(
+              v,
+              quote.subtotal,
             ),
-          })),
+          }))
+          .filter((v) => v.voucher_discount_amount > 0)
+          .sort(
+            (a, b) =>
+              b.voucher_discount_amount - a.voucher_discount_amount ||
+              a.end_date.localeCompare(b.end_date) ||
+              a.code.localeCompare(b.code) ||
+              a.voucher_id - b.voucher_id,
+          )
+          .slice(0, 3)
+          .map((v) => ({
+            ...v,
+            total_amount:
+              quote.subtotal - v.voucher_discount_amount + quote.shipping_fee,
+          }));
+        return {
+          membership: offers.membership,
+          subtotal: quote.subtotal,
+          shipping_fee: quote.shipping_fee,
+          suggestions,
         };
       },
     );

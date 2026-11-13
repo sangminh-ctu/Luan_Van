@@ -71,6 +71,7 @@
           <i class="bi" :class="openMenu.promotions ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
         </a>
         <ul v-show="openMenu.promotions" class="nav flex-column ms-3 mt-1">
+          <li><router-link to="/admin/membership-tiers" class="nav-link text-muted py-2 small" active-class="text-primary fw-bold bg-light"><i class="bi bi-award me-1"></i>Hạng thành viên</router-link></li>
           <li><router-link to="/admin/vouchers" class="nav-link text-muted py-2 small" active-class="text-primary fw-bold bg-light"><i class="bi bi-dash me-1"></i>Mã giảm giá</router-link></li>
           <li><router-link to="/admin/flash-sales" class="nav-link text-muted py-2 small" active-class="text-primary fw-bold bg-light"><i class="bi bi-lightning-charge me-1"></i>Flash Sale</router-link></li>
         </ul>
@@ -126,7 +127,7 @@ const openMenu = reactive({
 
 // Tự động mở menu con nếu đang truy cập vào trang thuộc nhóm đó
 watch(() => route.path, (newPath) => {
-  if (newPath.startsWith('/admin/flash-sales') || newPath.startsWith('/admin/vouchers')) openMenu.promotions = true
+  if (newPath.startsWith('/admin/membership-tiers') || newPath.startsWith('/admin/flash-sales') || newPath.startsWith('/admin/vouchers')) openMenu.promotions = true
   if (newPath.startsWith('/admin/books') || ['/admin/categories', '/admin/authors', '/admin/publishers'].includes(newPath)) openMenu.books = true
   if (['/admin/inventory', '/admin/suppliers'].includes(newPath) || newPath.startsWith('/admin/stock-receipts')) openMenu.inventory = true
   if (newPath.startsWith('/admin/orders') || newPath.startsWith('/admin/shipments')) openMenu.orders = true

@@ -77,6 +77,7 @@ const router = createRouter({
         { path: 'users', name: 'admin-users', component: DashboardView },
         { path: 'flash-sales', name: 'admin-flash-sales', component: AdminFlashSaleView },
         { path: 'vouchers', name: 'admin-vouchers', component: () => import('@/views/admin/VoucherView.vue') },
+        { path: 'membership-tiers', name: 'admin-membership-tiers', component: () => import('@/views/admin/MembershipView.vue') },
       ]
     }
   ]

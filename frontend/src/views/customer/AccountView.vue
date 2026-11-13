@@ -15,7 +15,9 @@
           <div class="toast-body d-flex align-items-center gap-2 fw-medium">
             <i
               class="bi fs-5"
-              :class="toast.type === 'error' ? 'bi-exclamation-octagon-fill' : 'bi-check-circle-fill'"
+              :class="
+                toast.type === 'error' ? 'bi-exclamation-octagon-fill' : 'bi-check-circle-fill'
+              "
             ></i>
             <span>{{ toast.message }}</span>
           </div>
@@ -45,16 +47,41 @@
                 {{ profile.full_name || 'Khách hàng' }}
               </div>
               <div class="mb-2">
-                <span class="badge rounded-pill text-bg-secondary bg-opacity-75 px-3 py-1 fw-medium">
+                <span
+                  class="badge rounded-pill text-bg-secondary bg-opacity-75 px-3 py-1 fw-medium"
+                >
                   {{ memberTier.name }}
                 </span>
               </div>
-              <div class="text-secondary small">Điểm tích lũy {{ pointsBalance.toLocaleString('vi-VN') }}</div>
+              <div class="text-secondary small">
+                Chi tiêu xét hạng:
+                {{ membership ? formatCurrency(membership.eligible_spend) : '—' }}
+              </div>
               <div v-if="memberTier.nextNeeded > 0" class="text-muted" style="font-size: 12px">
-                Thêm {{ memberTier.nextNeeded.toLocaleString('vi-VN') }} để nâng hạng {{ memberTier.nextName }}
+                Mua thêm {{ formatCurrency(memberTier.nextNeeded) }} để lên hạng
+                {{ memberTier.nextName }}
               </div>
             </div>
 
+            <div v-if="membership" class="px-3 pb-3">
+              <div
+                class="progress"
+                role="progressbar"
+                :aria-valuenow="membership.progress_percent"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-label="Tiến độ lên hạng"
+                style="height: 6px"
+              >
+                <div
+                  class="progress-bar bg-danger"
+                  :style="{ width: membership.progress_percent + '%' }"
+                ></div>
+              </div>
+              <div v-if="!membership.next_tier" class="small text-success mt-2">
+                Bạn đã đạt hạng cao nhất.
+              </div>
+            </div>
             <!-- Menu điều hướng -->
             <ul class="nav flex-column pt-2">
               <!-- Nhóm Thông tin tài khoản -->
@@ -69,7 +96,10 @@
                     <i class="bi bi-person fs-5"></i>
                     <span>Thông tin tài khoản</span>
                   </span>
-                  <i class="bi small" :class="accountGroupOpen ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+                  <i
+                    class="bi small"
+                    :class="accountGroupOpen ? 'bi-chevron-down' : 'bi-chevron-right'"
+                  ></i>
                 </button>
 
                 <ul v-show="accountGroupOpen" class="nav flex-column ps-4 pe-2 pb-1">
@@ -77,7 +107,9 @@
                     <button
                       type="button"
                       class="nav-link w-100 text-start py-2 border-0 bg-transparent small"
-                      :class="activeTab === 'profile' ? 'text-danger fw-semibold' : 'text-secondary'"
+                      :class="
+                        activeTab === 'profile' ? 'text-danger fw-semibold' : 'text-secondary'
+                      "
                       @click="switchTab('profile')"
                     >
                       Hồ sơ cá nhân
@@ -87,7 +119,9 @@
                     <button
                       type="button"
                       class="nav-link w-100 text-start py-2 border-0 bg-transparent small"
-                      :class="activeTab === 'addresses' ? 'text-danger fw-semibold' : 'text-secondary'"
+                      :class="
+                        activeTab === 'addresses' ? 'text-danger fw-semibold' : 'text-secondary'
+                      "
                       @click="switchTab('addresses')"
                     >
                       Sổ địa chỉ
@@ -97,7 +131,9 @@
                     <button
                       type="button"
                       class="nav-link w-100 text-start py-2 border-0 bg-transparent small"
-                      :class="activeTab === 'password' ? 'text-danger fw-semibold' : 'text-secondary'"
+                      :class="
+                        activeTab === 'password' ? 'text-danger fw-semibold' : 'text-secondary'
+                      "
                       @click="switchTab('password')"
                     >
                       Đổi mật khẩu
@@ -107,7 +143,9 @@
                     <button
                       type="button"
                       class="nav-link w-100 text-start py-2 border-0 bg-transparent small"
-                      :class="activeTab === 'benefits' ? 'text-danger fw-semibold' : 'text-secondary'"
+                      :class="
+                        activeTab === 'benefits' ? 'text-danger fw-semibold' : 'text-secondary'
+                      "
                       @click="switchTab('benefits')"
                     >
                       Ưu đãi thành viên
@@ -132,34 +170,20 @@
                 <button
                   type="button"
                   class="nav-link w-100 text-start d-flex align-items-center justify-content-between px-3 py-2 border-0 bg-transparent"
-                  :class="activeTab === 'vouchers' ? 'text-danger fw-semibold account-active-bar' : 'text-dark'"
+                  :class="
+                    activeTab === 'vouchers'
+                      ? 'text-danger fw-semibold account-active-bar'
+                      : 'text-dark'
+                  "
                   @click="switchTab('vouchers')"
                 >
                   <span class="d-flex align-items-center gap-2">
                     <i class="bi bi-ticket-perforated fs-5 text-secondary"></i>
                     <span>Ví voucher</span>
                   </span>
-                  <span v-if="vouchers.length > 0" class="badge rounded-pill bg-danger">
-                    {{ vouchers.length }}
+                  <span v-if="availableVoucherCount > 0" class="badge rounded-pill bg-danger">
+                    {{ availableVoucherCount }}
                   </span>
-                </button>
-              </li>
-
-              <!-- Điểm tích lũy -->
-              <li class="nav-item">
-                <button
-                  type="button"
-                  class="nav-link w-100 text-start d-flex align-items-center gap-2 px-3 py-2 border-0 bg-transparent"
-                  :class="activeTab === 'benefits' ? 'text-danger fw-semibold' : 'text-dark'"
-                  @click="switchTab('benefits')"
-                >
-                  <span
-                    class="rounded-circle bg-warning text-white d-inline-flex align-items-center justify-content-center fw-bold flex-shrink-0"
-                    style="width: 20px; height: 20px; font-size: 11px"
-                  >
-                    F
-                  </span>
-                  <span>Tài khoản Điểm thưởng</span>
                 </button>
               </li>
             </ul>
@@ -168,6 +192,10 @@
 
         <!-- CỘT PHẢI: NỘI DUNG CHÍNH -->
         <div class="col-lg-9">
+          <div v-if="accountError" class="alert alert-danger" role="alert">
+            {{ accountError }}
+            <button class="btn btn-sm btn-outline-danger" @click="fetchAccountData">Thử lại</button>
+          </div>
           <!-- Thanh nhắc cập nhật thông tin nếu thiếu SĐT hoặc họ tên -->
           <div
             v-if="needsProfileUpdate"
@@ -203,7 +231,10 @@
                   class="rounded-circle bg-danger text-white shadow d-flex flex-column align-items-center justify-content-center position-relative"
                   style="width: 78px; height: 78px; border: 4px solid #fff"
                 >
-                  <i class="bi bi-Crown-fill bi-award-fill text-warning fs-5 position-absolute" style="top: -14px"></i>
+                  <i
+                    class="bi bi-Crown-fill bi-award-fill text-warning fs-5 position-absolute"
+                    style="top: -14px"
+                  ></i>
                   <i class="bi bi-emoji-smile-fill fs-1"></i>
                 </div>
                 <div
@@ -223,16 +254,16 @@
                     <div class="row g-2">
                       <div class="col-6">
                         <div class="bg-body-tertiary rounded-3 p-3 h-100">
-                          <div class="text-secondary small mb-1">Điểm hiện có</div>
+                          <div class="text-secondary small mb-1">Chi tiêu tích lũy xét hạng</div>
                           <div class="fw-bold text-danger fs-5">
-                            {{ pointsBalance.toLocaleString('vi-VN') }}
+                            {{ membership ? formatCurrency(membership.eligible_spend) : '—' }}
                           </div>
                         </div>
                       </div>
                       <div class="col-6">
                         <div class="bg-body-tertiary rounded-3 p-3 h-100">
-                          <div class="text-secondary small mb-1">Voucher hiện có</div>
-                          <div class="fw-bold text-danger fs-5">{{ vouchers.length }} lần</div>
+                          <div class="text-secondary small mb-1">Voucher khả dụng</div>
+                          <div class="fw-bold text-danger fs-5">{{ availableVoucherCount }} mã</div>
                         </div>
                       </div>
                     </div>
@@ -246,13 +277,15 @@
                     <div class="row g-2">
                       <div class="col-6">
                         <div class="bg-body-tertiary rounded-3 p-3 h-100">
-                          <div class="text-secondary small mb-1">Số đơn hàng</div>
-                          <div class="fw-bold text-danger fs-5">{{ stats.order_count }} đơn hàng</div>
+                          <div class="text-secondary small mb-1">Đơn hoàn tất</div>
+                          <div class="fw-bold text-danger fs-5">
+                            {{ stats.order_count }} đơn hàng
+                          </div>
                         </div>
                       </div>
                       <div class="col-6">
                         <div class="bg-body-tertiary rounded-3 p-3 h-100">
-                          <div class="text-secondary small mb-1">Đã thanh toán</div>
+                          <div class="text-secondary small mb-1">Tiền hàng hoàn tất</div>
                           <div class="fw-bold text-danger fs-5">
                             {{ formatCurrency(stats.total_spent) }}
                           </div>
@@ -566,7 +599,10 @@
                       class="btn btn-brand-danger px-4 fw-semibold"
                       :disabled="savingAddress"
                     >
-                      <span v-if="savingAddress" class="spinner-border spinner-border-sm me-1"></span>
+                      <span
+                        v-if="savingAddress"
+                        class="spinner-border spinner-border-sm me-1"
+                      ></span>
                       Lưu địa chỉ
                     </button>
                   </div>
@@ -575,7 +611,8 @@
             </div>
 
             <div v-if="loadingAddresses" class="text-center py-4 text-secondary">
-              <span class="spinner-border spinner-border-sm text-danger me-2"></span>Đang tải sổ địa chỉ...
+              <span class="spinner-border spinner-border-sm text-danger me-2"></span>Đang tải sổ địa
+              chỉ...
             </div>
             <div v-else-if="addresses.length === 0" class="text-center py-4 text-secondary">
               <i class="bi bi-geo-alt fs-1 d-block mb-2 text-muted"></i>
@@ -599,7 +636,8 @@
                     </span>
                   </div>
                   <div class="text-secondary small">
-                    {{ addr.street_detail }}, {{ addr.ward }}, {{ addr.district }}, {{ addr.province }}
+                    {{ addr.street_detail }}, {{ addr.ward }}, {{ addr.district }},
+                    {{ addr.province }}
                   </div>
                 </div>
                 <div class="d-flex align-items-center gap-2">
@@ -684,7 +722,10 @@
                     class="btn btn-brand-danger px-5 py-2 fw-semibold rounded-3"
                     :disabled="savingPassword"
                   >
-                    <span v-if="savingPassword" class="spinner-border spinner-border-sm me-2"></span>
+                    <span
+                      v-if="savingPassword"
+                      class="spinner-border spinner-border-sm me-2"
+                    ></span>
                     Lưu thay đổi
                   </button>
                 </div>
@@ -695,19 +736,29 @@
           <!-- TAB 4: VÍ VOUCHER -->
           <div v-else-if="activeTab === 'vouchers'" class="card border-0 shadow-sm rounded-3 p-4">
             <h5 class="fw-bold text-dark mb-4">Ví voucher</h5>
+            <p class="small text-secondary">
+              Mã khả dụng là mã còn lượt và phù hợp hạng. Điều kiện tiền hàng được kiểm tra tại
+              checkout; mã có nhãn khóa dành cho hạng cao hơn.
+            </p>
             <div v-if="vouchers.length === 0" class="text-center py-4 text-secondary">
               <i class="bi bi-ticket-perforated fs-1 d-block mb-2 text-muted"></i>
               Hiện chưa có mã giảm giá nào đang áp dụng.
             </div>
             <div v-else class="row g-3">
               <div v-for="v in vouchers" :key="v.voucher_id" class="col-md-6">
-                <div class="border rounded-3 p-3 h-100 d-flex flex-column justify-content-between bg-body-tertiary">
+                <div
+                  class="border rounded-3 p-3 h-100 d-flex flex-column justify-content-between bg-body-tertiary"
+                >
                   <div>
+                    <span v-if="!v.eligible" class="badge bg-secondary mb-2"
+                      >Dành cho hạng {{ v.min_tier_name }} trở lên</span
+                    >
+                    <span v-else class="badge bg-success mb-2"
+                      >Còn {{ v.user_remaining_uses }} lượt cho tài khoản</span
+                    >
                     <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
                       <span class="badge bg-danger px-2 py-1 fs-6">{{ v.code }}</span>
-                      <span class="small text-secondary">
-                        HSD: {{ formatDate(v.end_date) }}
-                      </span>
+                      <span class="small text-secondary"> HSD: {{ formatDate(v.end_date) }} </span>
                     </div>
                     <div class="fw-bold text-dark mb-1">
                       <template v-if="v.discount_type === 'percent'">
@@ -716,9 +767,7 @@
                           (Tối đa {{ formatCurrency(v.max_discount_amount) }})
                         </span>
                       </template>
-                      <template v-else>
-                        Giảm {{ formatCurrency(v.discount_value) }}
-                      </template>
+                      <template v-else> Giảm {{ formatCurrency(v.discount_value) }} </template>
                     </div>
                     <div class="small text-secondary mb-3">
                       Đơn tối thiểu: {{ formatCurrency(v.min_order_value) }}
@@ -729,10 +778,15 @@
                       type="button"
                       class="btn btn-outline-danger btn-sm fw-semibold"
                       @click="copyVoucherCode(v.code)"
+                      :disabled="!v.eligible"
                     >
                       <i class="bi bi-clipboard me-1"></i>Sao chép mã
                     </button>
-                    <router-link to="/cart" class="btn btn-brand-danger btn-sm fw-semibold">
+                    <router-link
+                      v-if="v.eligible"
+                      to="/cart"
+                      class="btn btn-brand-danger btn-sm fw-semibold"
+                    >
                       Dùng ngay
                     </router-link>
                   </div>
@@ -745,37 +799,29 @@
           <div v-else-if="activeTab === 'benefits'" class="card border-0 shadow-sm rounded-3 p-4">
             <h5 class="fw-bold text-dark mb-3">Ưu đãi thành viên</h5>
             <p class="text-secondary small mb-4">
-              Tích lũy điểm thưởng qua mỗi đơn hàng hoàn tất để nâng hạng thành viên và nhận thêm nhiều đặc quyền tại BookStore.
+              Hạng tính theo tổng tiền hàng thực trả của đơn đã giao và đã thanh toán. Không tính
+              phí vận chuyển, không đặt lại hằng năm.
             </p>
             <div class="row g-3">
-              <div class="col-md-4">
-                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
-                  <span class="badge text-bg-secondary mb-2">Thành viên Bạc</span>
-                  <div class="fw-bold mb-1">Từ 0 điểm</div>
-                  <ul class="small text-secondary ps-3 mb-0">
-                    <li>Nhận thông báo khuyến mãi & Flash Sale sớm</li>
-                    <li>Sử dụng mã giảm giá toàn sàn</li>
-                  </ul>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="border border-warning rounded-3 p-3 h-100 bg-warning bg-opacity-10">
-                  <span class="badge text-bg-warning mb-2">Thành viên Vàng</span>
-                  <div class="fw-bold mb-1">Từ 30.000 điểm</div>
-                  <ul class="small text-secondary ps-3 mb-0">
-                    <li>Tất cả quyền lợi hạng Bạc</li>
-                    <li>Ưu tiên nhận voucher giảm giá đặc biệt</li>
-                  </ul>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="border border-primary rounded-3 p-3 h-100 bg-primary bg-opacity-10">
-                  <span class="badge text-bg-primary mb-2">Thành viên Kim Cương</span>
-                  <div class="fw-bold mb-1">Từ 100.000 điểm</div>
-                  <ul class="small text-secondary ps-3 mb-0">
-                    <li>Tất cả quyền lợi hạng Vàng</li>
-                    <li>Đặc quyền săn sách Ấn bản giới hạn</li>
-                  </ul>
+              <div v-for="tier in membershipTiers" :key="tier.tier_id" class="col-md-4">
+                <div
+                  class="border rounded-3 p-3 h-100"
+                  :class="{
+                    'border-danger bg-danger bg-opacity-10':
+                      membership?.current_tier.tier_id === tier.tier_id,
+                  }"
+                >
+                  <span class="badge bg-secondary mb-2">Thành viên {{ tier.tier_name }}</span>
+                  <div class="fw-bold mb-2">Từ {{ formatCurrency(tier.min_spend) }}</div>
+                  <p class="small text-secondary">
+                    Sử dụng mã công khai và mã ưu đãi yêu cầu hạng {{ tier.tier_name }} hoặc thấp
+                    hơn.
+                  </p>
+                  <span
+                    v-if="membership?.current_tier.tier_id === tier.tier_id"
+                    class="small text-danger fw-bold"
+                    >Hạng hiện tại của bạn</span
+                  >
                 </div>
               </div>
             </div>
@@ -815,6 +861,10 @@ const stats = ref({
 })
 
 const vouchers = ref([])
+const membership = ref(null)
+const membershipTiers = ref([])
+const accountError = ref('')
+const availableVoucherCount = computed(() => vouchers.value.filter((v) => v.eligible).length)
 
 const profileForm = reactive({
   lastName: '',
@@ -878,21 +928,23 @@ const isAccountGroupActive = computed(() =>
   ['profile', 'addresses', 'password', 'benefits'].includes(activeTab.value),
 )
 
-const pointsBalance = computed(() => Number(profile.value.reward_points_balance || 0))
-
 const memberTier = computed(() => {
-  const pts = pointsBalance.value
-  if (pts >= 100000) {
-    return { name: 'Thành viên Kim Cương', nextName: '', nextNeeded: 0 }
+  return {
+    name: membership.value?.current_tier
+      ? 'Thành viên ' + membership.value.current_tier.tier_name
+      : 'Đang tải hạng…',
+    nextName: membership.value?.next_tier?.tier_name || '',
+    nextNeeded: membership.value?.remaining_spend || 0,
   }
-  if (pts >= 30000) {
-    return { name: 'Thành viên Vàng', nextName: 'Kim Cương', nextNeeded: 100000 - pts }
-  }
-  return { name: 'Thành viên Bạc', nextName: 'Vàng', nextNeeded: 30000 - pts }
 })
 
 const needsProfileUpdate = computed(() => {
-  return !profile.value.phone || !profileForm.birthDay || !profileForm.birthMonth || !profileForm.birthYear
+  return (
+    !profile.value.phone ||
+    !profileForm.birthDay ||
+    !profileForm.birthMonth ||
+    !profileForm.birthYear
+  )
 })
 
 function splitFullName(fullName) {
@@ -947,6 +999,7 @@ function syncFormFromProfile(userObj) {
 }
 
 async function fetchAccountData() {
+  accountError.value = ''
   try {
     const data = await userService.getMe()
     if (data.user) {
@@ -957,11 +1010,13 @@ async function fetchAccountData() {
     if (data.stats) {
       stats.value = data.stats
     }
+    membership.value = data.membership || null
+    membershipTiers.value = data.tiers || []
     if (Array.isArray(data.vouchers)) {
       vouchers.value = data.vouchers
     }
   } catch (err) {
-    showToast(err.response?.data?.message || 'Không thể tải thông tin tài khoản', 'error')
+    accountError.value = err.response?.data?.message || 'Không thể tải thông tin tài khoản'
   }
 }
 

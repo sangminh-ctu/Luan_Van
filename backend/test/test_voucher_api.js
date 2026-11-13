@@ -59,6 +59,7 @@ async function run() {
       "end_date",
       "usage_limit",
       "per_user_limit",
+      "min_tier_id",
       "used_count",
       "status",
     ];
@@ -75,7 +76,9 @@ async function run() {
             start_date timestamp NOT NULL, end_date timestamp NOT NULL CHECK (end_date > start_date),
             usage_limit integer, used_count integer NOT NULL DEFAULT 0, per_user_limit integer NOT NULL DEFAULT 1 CHECK (per_user_limit >= 1),
             status varchar(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active','expired','disabled'))
-        ); CREATE TABLE orders (order_id serial PRIMARY KEY, voucher_id integer REFERENCES voucher(voucher_id) ON DELETE SET NULL ON UPDATE CASCADE)`);
+        ); CREATE TABLE orders (order_id serial PRIMARY KEY, voucher_id integer REFERENCES voucher(voucher_id) ON DELETE SET NULL ON UPDATE CASCADE,
+          user_id integer, order_status varchar(30), payment_status varchar(30), subtotal numeric(14,2), voucher_discount_amount numeric(12,2) DEFAULT 0, points_discount numeric(12,2) DEFAULT 0)`);
+    await db.query(require('fs').readFileSync(require('path').join(__dirname, '../../database/migrations/011_membership.sql'), 'utf8'));
     await check("Reject invalid values and forged usage count", async () => {
       for (const invalid of [
         { discount_value: 101 },

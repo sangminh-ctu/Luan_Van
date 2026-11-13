@@ -100,7 +100,14 @@
                     >Tối đa {{ currency(voucher.max_discount_amount) }}</small
                   >
                 </td>
-                <td>{{ currency(voucher.min_order_value) }}</td>
+                <td>
+                  {{ currency(voucher.min_order_value)
+                  }}<small class="d-block text-muted">{{
+                    voucher.min_tier_name
+                      ? `Hạng ${voucher.min_tier_name} trở lên`
+                      : 'Mọi hạng thành viên'
+                  }}</small>
+                </td>
                 <td class="small">
                   <div>{{ dateLabel(voucher.start_date) }}</div>
                   <div class="text-muted">đến {{ dateLabel(voucher.end_date) }}</div>
@@ -393,6 +400,28 @@
                 </div>
               </div>
               <div class="col-md-6">
+                <label for="min-tier" class="form-label">Hạng tối thiểu được sử dụng</label>
+                <select
+                  id="min-tier"
+                  v-model="form.min_tier_id"
+                  class="form-select"
+                  v-bind="fieldProps('min_tier_id')"
+                  :disabled="historyLocked || saving"
+                >
+                  <option :value="null">Tất cả thành viên</option>
+                  <option v-for="tier in membershipTiers" :key="tier.tier_id" :value="tier.tier_id">
+                    {{ tier.tier_name }} trở lên
+                  </option>
+                </select>
+                <div
+                  v-if="fieldError('min_tier_id')"
+                  id="min-tier-error"
+                  class="invalid-feedback d-block"
+                >
+                  {{ fieldError('min_tier_id') }}
+                </div>
+              </div>
+              <div class="col-md-6">
                 <label for="start-date" class="form-label"
                   >Bắt đầu <span class="text-danger">*</span></label
                 ><input
@@ -540,6 +569,8 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { voucherService } from '@/services/voucherService'
+import { membershipService } from '@/services/membershipService'
+const membershipTiers = ref([])
 import { validateVoucherForm } from '@/utils/voucherValidation'
 
 const states = {
@@ -630,6 +661,7 @@ const fieldIds = {
   max_discount_amount: 'max-discount',
   usage_limit: 'usage-limit',
   per_user_limit: 'per-user-limit',
+  min_tier_id: 'min-tier',
   start_date: 'start-date',
   end_date: 'end-date',
   status: 'form-status',
@@ -739,6 +771,7 @@ async function openForm(voucher) {
       min_order_value: row?.min_order_value ?? 0,
       usage_limit: row?.usage_limit ?? null,
       per_user_limit: row?.per_user_limit ?? 1,
+      min_tier_id: row?.min_tier_id ?? null,
       start_date: row?.start_date ?? '',
       start_now: false,
       end_date: row?.end_date ?? later,
@@ -873,6 +906,14 @@ watch(
   },
 )
 onMounted(() => {
+  membershipService
+    .list()
+    .then((result) => {
+      membershipTiers.value = result.tiers
+    })
+    .catch(() => {
+      error.value = 'Không tải được danh sách hạng thành viên. Vui lòng tải lại trang.'
+    })
   load()
   clockTimer = setInterval(() => {
     currentTime.value = vietnamNow()

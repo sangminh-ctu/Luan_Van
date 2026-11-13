@@ -70,6 +70,7 @@ async function run() {
   db = require("../src/config/database").sequelize;
   await db.query(schema);
   await db.query("SET search_path TO public");
+  await db.query(fs.readFileSync(path.join(__dirname, '../../database/migrations/011_membership.sql'), 'utf8'));
   const [tables] = await db.query(
     "SELECT to_regclass('public.flash_sale') AS sale",
   );

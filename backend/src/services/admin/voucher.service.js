@@ -14,6 +14,7 @@ const effectiveStatus = `CASE
     WHEN v.start_date > (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Ho_Chi_Minh') THEN 'scheduled'
     ELSE 'active' END`;
 const columns = `v.*, to_char(v.start_date, 'YYYY-MM-DD"T"HH24:MI:SS') AS start_date,
+    (SELECT tier_name FROM membership_tier WHERE tier_id = v.min_tier_id) AS min_tier_name,
     to_char(v.end_date, 'YYYY-MM-DD"T"HH24:MI:SS') AS end_date,
     ${effectiveStatus} AS effective_status,
     (v.used_count > 0 OR EXISTS (SELECT 1 FROM orders o WHERE o.voucher_id = v.voucher_id)) AS has_history`;
@@ -138,6 +139,19 @@ function validate(data) {
       "usage_limit",
     );
   const status = data.status ?? "active";
+  const min_tier_id =
+    data.min_tier_id === undefined ||
+    data.min_tier_id === null ||
+    data.min_tier_id === ""
+      ? null
+      : Number(data.min_tier_id);
+  if (
+    min_tier_id !== null &&
+    (!["number", "string"].includes(typeof data.min_tier_id) ||
+      !/^[1-9]\d*$/.test(String(data.min_tier_id)) ||
+      min_tier_id > 2147483647)
+  )
+    fail("Vui lòng chọn hạng tối thiểu hợp lệ.", 400, "min_tier_id");
   const per_user_limit =
     data.per_user_limit === undefined ? 1 : Number(data.per_user_limit);
   if (
@@ -164,6 +178,7 @@ function validate(data) {
     end_date,
     usage_limit,
     per_user_limit,
+    min_tier_id,
     status,
   };
 }
@@ -264,6 +279,19 @@ async function save(id, data) {
   try {
     return await sequelize.transaction(async (transaction) => {
       let old;
+      if (payload.min_tier_id !== null) {
+        const tiers = await select(
+          "SELECT tier_id FROM membership_tier WHERE tier_id = :id",
+          { id: payload.min_tier_id },
+          transaction,
+        );
+        if (!tiers.length)
+          fail(
+            "Hạng thành viên không tồn tại. Vui lòng tải lại danh sách hạng.",
+            400,
+            "min_tier_id",
+          );
+      }
       if (id !== null) {
         old = await lock(id, transaction);
         if (data.start_now) fail("Chỉ được chọn áp dụng ngay khi tạo mã mới");
@@ -281,6 +309,7 @@ async function save(id, data) {
             "max_discount_amount",
             "min_order_value",
             "start_date",
+            "min_tier_id",
           ])
             if (old[key] !== payload[key])
               fail(

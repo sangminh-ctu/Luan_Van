@@ -304,6 +304,67 @@
             </div>
 
             <form class="mb-4" novalidate @submit.prevent="applyVoucher">
+              <button
+                type="button"
+                class="btn btn-outline-danger btn-sm mb-3"
+                :disabled="isSubmitting || previewBusy || suggestionBusy"
+                @click="loadSuggestions"
+              >
+                <i class="bi bi-stars me-1"></i
+                >{{ suggestionBusy ? 'Đang tìm ưu đãi…' : 'Tìm mã tiết kiệm nhất' }}
+              </button>
+              <div v-if="suggestionError" class="small text-danger mb-2" role="alert">
+                {{ suggestionError }}
+              </div>
+              <div
+                v-if="suggestionsLoaded && !suggestions.length"
+                class="small text-muted mb-3"
+                role="status"
+              >
+                Chưa có mã phù hợp với hạng, lượt sử dụng và giỏ hàng hiện tại.
+              </div>
+              <div
+                v-if="suggestions.length"
+                class="border rounded p-3 mb-3 bg-light"
+                aria-live="polite"
+              >
+                <div
+                  v-for="(suggestion, index) in suggestions"
+                  :key="suggestion.voucher_id"
+                  class="d-flex justify-content-between gap-2 py-2"
+                  :class="{ 'border-top': index }"
+                >
+                  <div>
+                    <div class="fw-semibold small">
+                      {{ suggestion.code }}
+                      <span v-if="index === 0" class="badge bg-success">Tiết kiệm nhất</span>
+                    </div>
+                    <div class="small text-success">
+                      Giảm {{ formatCurrency(suggestion.voucher_discount_amount) }} · Thanh toán
+                      {{ formatCurrency(suggestion.total_amount) }}
+                    </div>
+                    <small class="text-muted"
+                      >{{
+                        suggestion.min_tier_name
+                          ? `Dành cho hạng ${suggestion.min_tier_name} trở lên`
+                          : 'Dành cho mọi hạng'
+                      }}
+                      · Đủ điều kiện giỏ hàng hiện tại</small
+                    >
+                  </div>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-danger align-self-center text-nowrap"
+                    :disabled="isSubmitting || previewBusy"
+                    @click="applySuggested(suggestion.code)"
+                  >
+                    Áp dụng
+                  </button>
+                </div>
+                <small class="text-muted"
+                  >Gợi ý không giữ lượt. Điều kiện được kiểm tra lại khi đặt hàng.</small
+                >
+              </div>
               <label for="checkout-voucher" class="form-label fw-semibold small">Mã giảm giá</label>
               <div class="input-group">
                 <input
@@ -423,6 +484,38 @@ const voucherError = ref('')
 const quoteError = ref('')
 const quoteNotice = ref('')
 let previewRequest = 0
+const suggestions = ref([]),
+  suggestionBusy = ref(false),
+  suggestionError = ref(''),
+  suggestionsLoaded = ref(false)
+let suggestionRequest = 0
+async function loadSuggestions() {
+  const request = ++suggestionRequest
+  suggestionBusy.value = true
+  suggestionError.value = ''
+  suggestionsLoaded.value = false
+  try {
+    const result = await orderService.voucherSuggestions({
+      book_ids: [...cartStore.selectedBookIds],
+    })
+    if (request !== suggestionRequest) return
+    suggestions.value = result.suggestions
+    suggestionsLoaded.value = true
+  } catch (error) {
+    if (request === suggestionRequest) {
+      suggestions.value = []
+      suggestionError.value =
+        error.response?.data?.message || 'Không tìm được ưu đãi. Vui lòng thử lại.'
+    }
+  } finally {
+    if (request === suggestionRequest) suggestionBusy.value = false
+  }
+}
+async function applySuggested(code) {
+  voucherDraft.value = code
+  editVoucher()
+  await applyVoucher()
+}
 const hasUnappliedCode = computed(
   () => voucherDraft.value.trim().toUpperCase() !== appliedCode.value,
 )
@@ -484,6 +577,11 @@ watch(
       cartStore.selectedItems.map((item) => [item.book_id, item.quantity, item.subtotal]),
     ),
   () => {
+    ++suggestionRequest
+    suggestions.value = []
+    suggestionsLoaded.value = false
+    suggestionBusy.value = false
+    suggestionError.value = ''
     if (!isInitialLoading.value && !isSubmitting.value) {
       quoteNotice.value = 'Giỏ hàng đã thay đổi. Vui lòng kiểm tra lại tổng thanh toán.'
       refreshQuote(appliedCode.value)
@@ -776,6 +874,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  ++suggestionRequest
   ++previewRequest
   if (toastTimer) clearTimeout(toastTimer)
 })

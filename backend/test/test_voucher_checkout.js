@@ -76,6 +76,7 @@ async function run() {
         "utf8",
       ),
     );
+    await db.query(fs.readFileSync(path.join(__dirname, '../../database/migrations/011_membership.sql'), 'utf8'));
     const models = require("../src/models/associations");
     const {
       User,

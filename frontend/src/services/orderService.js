@@ -1,6 +1,8 @@
 import api from './api'
 
 export const orderService = {
+  voucherSuggestions: (payload) =>
+    api.post('/orders/voucher-suggestions', payload).then((res) => res.data),
   preview: (payload) => api.post('/orders/preview', payload).then((res) => res.data),
   getShippingConfig: () => api.get('/orders/shipping-config').then((res) => res.data),
   createOrder: (payload) => api.post('/orders', payload).then((res) => res.data),

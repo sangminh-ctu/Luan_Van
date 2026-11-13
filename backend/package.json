@@ -8,7 +8,9 @@
     "dev": "nodemon server.js",
     "test:vouchers": "node test/test_voucher_api.js",
     "test:voucher-checkout": "node test/test_voucher_checkout.js",
-    "migrate:voucher-checkout": "node scripts/run_migration_010.js"
+    "migrate:voucher-checkout": "node scripts/run_migration_010.js",
+    "migrate:membership": "node scripts/run_migration_011.js",
+    "test:membership": "node test/test_membership.js"
   },
   "keywords": [],
   "author": "",

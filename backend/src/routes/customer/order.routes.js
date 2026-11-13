@@ -9,6 +9,7 @@ router.get('/shipping-config', orderController.getShippingConfig);
 router.get('/', orderController.getMyOrders);
 router.post('/', orderController.createOrder);
 router.post('/preview', orderController.preview);
+router.post('/voucher-suggestions', orderController.voucherSuggestions);
 router.get('/:id', orderController.getMyOrderDetail);
 router.post('/:id/cancel', orderController.cancelMyOrder);
 

@@ -118,10 +118,12 @@ HomeSpotlightBook.belongsTo(Book, { foreignKey: 'book_id', as: 'book' });
 HomeSpotlightCategory.belongsTo(Category, { foreignKey: 'category_id', as: 'category' });
 
 const Voucher = require('./Voucher');
+const MembershipTier = require('./MembershipTier');
+Voucher.belongsTo(MembershipTier, { foreignKey: 'min_tier_id', as: 'minimum_tier', onDelete: 'RESTRICT' });
 Voucher.hasMany(Order, { foreignKey: 'voucher_id', as: 'orders', onDelete: 'SET NULL', onUpdate: 'CASCADE' });
 Order.belongsTo(Voucher, { foreignKey: 'voucher_id', as: 'voucher', onDelete: 'SET NULL', onUpdate: 'CASCADE' });
 
-module.exports = { Voucher, HomeSpotlight, HomeSpotlightBook, HomeSpotlightCategory, FlashSale, FlashSaleItem, Tag, BookTag,
+module.exports = { MembershipTier, Voucher, HomeSpotlight, HomeSpotlightBook, HomeSpotlightCategory, FlashSale, FlashSaleItem, Tag, BookTag,
     Book,
     Category,
     Author,

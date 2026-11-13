@@ -38,6 +38,12 @@ exports.preview = async (req, res, next) => {
         res.json(quote);
     } catch (error) { next(error); }
 };
+exports.voucherSuggestions = async (req, res, next) => {
+    try {
+        ensureCustomer(req);
+        res.json(await orderService.voucherSuggestions(req.user.user_id || req.user.id, req.body));
+    } catch (error) { next(error); }
+};
 
 exports.getMyOrders = async (req, res, next) => {
     try {

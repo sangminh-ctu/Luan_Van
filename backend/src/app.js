@@ -31,6 +31,7 @@ app.use('/api/site-config', require('./routes/customer/site-config.routes'));
 app.use('/api/cart', require('./routes/customer/cart.routes'));
 app.use('/api/addresses', require('./routes/customer/address.routes'));
 app.use('/api/orders', require('./routes/customer/order.routes'));
+app.use('/api/membership', require('./routes/customer/membership.routes'));
 
 app.use('/api/flash-sales', require('./routes/customer/flash-sale.routes'));
 
@@ -38,6 +39,7 @@ app.use('/api/flash-sales', require('./routes/customer/flash-sale.routes'));
 app.use('/api/admin/site-config', verifyToken, requireAdmin, require('./routes/admin/site-config.routes'));
 app.use('/api/admin/flash-sales', verifyToken, requireAdmin, require('./routes/admin/flash-sale.routes'));
 app.use('/api/admin/vouchers', verifyToken, requireAdmin, require('./routes/admin/voucher.routes'));
+app.use('/api/admin/membership-tiers', verifyToken, requireAdmin, require('./routes/admin/membership.routes'));
 app.use('/api/admin/categories', verifyToken, requireAdmin, require('./routes/admin/category.routes'));
 app.use('/api/admin/authors', verifyToken, requireAdmin, require('./routes/admin/author.routes'));
 app.use('/api/admin/publishers', verifyToken, requireAdmin, require('./routes/admin/publisher.routes'));
