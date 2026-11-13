@@ -1,6 +1,13 @@
 import api from './api'
 
 export const orderService = {
+  getPaymentConfig: () => api.get('/payments/vnpay/config').then((res) => res.data),
+  paymentLink: (orderId) =>
+    api.post(`/payments/vnpay/orders/${orderId}/link`).then((res) => res.data),
+  paymentStatus: (reference) =>
+    api.get(`/payments/vnpay/${reference}/status`).then((res) => res.data),
+  reconcilePayment: (reference) =>
+    api.post(`/payments/vnpay/${reference}/reconcile`).then((res) => res.data),
   voucherSuggestions: (payload) =>
     api.post('/orders/voucher-suggestions', payload).then((res) => res.data),
   preview: (payload) => api.post('/orders/preview', payload).then((res) => res.data),

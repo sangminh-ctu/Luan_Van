@@ -21,7 +21,7 @@ exports.createOrder = async (req, res, next) => {
     try {
         ensureCustomer(req);
         const userId = req.user.user_id || req.user.id;
-        const order = await orderService.createOrder(userId, req.body);
+        const order = await orderService.createOrder(userId, req.body, { ip: req.ip });
         res.status(201).json({
             message: 'Đặt hàng thành công',
             order

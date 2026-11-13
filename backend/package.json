@@ -10,7 +10,10 @@
     "test:voucher-checkout": "node test/test_voucher_checkout.js",
     "migrate:voucher-checkout": "node scripts/run_migration_010.js",
     "migrate:membership": "node scripts/run_migration_011.js",
-    "test:membership": "node test/test_membership.js"
+    "test:membership": "node test/test_membership.js",
+    "migrate:vnpay": "node scripts/run_migration_012.js",
+    "migrate:vnpay-return": "node scripts/run_migration_013.js",
+    "test:vnpay": "node test/test_vnpay.js"
   },
   "keywords": [],
   "author": "",

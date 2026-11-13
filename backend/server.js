@@ -6,6 +6,7 @@ const startServer = async () => {
     await testConnection();
 
     app.listen(env.port, () => {
+        require('./src/services/payment.service').startWorker();
         console.log(`Server đang chạy tại http://localhost:${env.port}`);
     });
 };

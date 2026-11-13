@@ -134,6 +134,8 @@
                   >
                     {{ getPaymentStatusLabel(order.payment_status) }}
                   </span>
+                  <div v-if="order.payment_review_required" class="small text-danger fw-semibold mt-1">Cần đối soát VNPAY</div>
+                  <div v-if="order.payment_method === 'vnpay'" class="small text-secondary">VNPAY</div>
                 </td>
                 <td class="text-center">
                   <span

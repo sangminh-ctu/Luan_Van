@@ -15,6 +15,8 @@ const {
 const pricing = require("./pricing.service");
 const vouchers = require("./voucher.service");
 const inventoryService = require("./admin/inventory.service");
+const payments = require("./payment.service");
+const gateway = require("./vnpay.gateway");
 const {
   FREE_SHIPPING_THRESHOLD,
   STANDARD_SHIPPING_FEE,
@@ -172,6 +174,7 @@ class OrderService {
 
     return {
       ...raw,
+      ...payments.summarize(raw),
       subtotal: Number(raw.subtotal || 0),
       shipping_fee: Number(raw.shipping_fee || 0),
       voucher_discount_amount: Number(raw.voucher_discount_amount || 0),
@@ -252,7 +255,7 @@ class OrderService {
    * Tạo đơn hàng mới từ các sách đã chọn trong giỏ hàng (POST /api/orders)
    * Client gửi { book_ids, address_id, payment_method, expected_prices }. Giá do backend quyết định.
    */
-  async createOrder(userId, payload) {
+  async createOrder(userId, payload, context = {}) {
     const voucherCode = vouchers.normalizeCode(payload?.voucher_code);
     const expectedQuote = payload?.expected_quote;
     const quoteFields = [
@@ -281,14 +284,13 @@ class OrderService {
       .trim()
       .toLowerCase();
 
-    // 1. Kiểm tra phương thức thanh toán (chỉ cho phép 'cod')
-    if (rawPaymentMethod !== "cod") {
-      const err = new Error(
-        "Phương thức thanh toán không hợp lệ (hiện tại hệ thống chỉ hỗ trợ COD)",
-      );
+    // Price and payment URL are both determined by the backend.
+    if (!["cod", "vnpay"].includes(rawPaymentMethod)) {
+      const err = new Error("Vui lòng chọn thanh toán COD hoặc VNPAY.");
       err.status = 400;
       throw err;
     }
+    if (rawPaymentMethod === "vnpay") gateway.requireConfig();
 
     // 2. Kiểm tra danh sách book_ids
     if (!Array.isArray(rawBookIds) || rawBookIds.length === 0) {
@@ -568,7 +570,13 @@ class OrderService {
               voucher_discount_amount: voucherDiscountAmount,
               points_discount: pointsDiscount,
               total_amount: totalAmount,
-              payment_method: "cod",
+              payment_method: rawPaymentMethod,
+              payment_expires_at:
+                rawPaymentMethod === "vnpay"
+                  ? new Date(
+                      priceAt.getTime() + gateway.config().minutes * 60000,
+                    )
+                  : null,
               payment_status: "pending",
               order_status: "processing",
             },
@@ -589,6 +597,8 @@ class OrderService {
         }
       }
 
+      if (rawPaymentMethod === "vnpay")
+        await payments.createAttempt(newOrder, transaction, context.ip);
       if (applied.voucher)
         await vouchers.consume(applied.voucher.voucher_id, transaction);
       // Tạo các dòng ORDER_ITEM
@@ -654,6 +664,7 @@ class OrderService {
     const { rows, count } = await Order.findAndCountAll({
       where,
       include: [
+        payments.paymentInclude(),
         { model: Voucher, as: "voucher", attributes: ["voucher_id", "code"] },
         { model: Address, as: "address" },
         { model: Shipment, as: "shipment" },
@@ -709,6 +720,7 @@ class OrderService {
     const order = await Order.findOne({
       where,
       include: [
+        payments.paymentInclude(),
         { model: Voucher, as: "voucher", attributes: ["voucher_id", "code"] },
         { model: Address, as: "address" },
         { model: Shipment, as: "shipment" },
@@ -746,7 +758,7 @@ class OrderService {
   /**
    * Khách hàng hủy đơn hàng của chính mình (chỉ khi order_status === 'processing')
    */
-  async cancelOrderByCustomer(userId, orderId) {
+  async cancelOrderByCustomer(userId, orderId, expiryPaymentId = null) {
     const transaction = await sequelize.transaction({
       isolationLevel: "READ COMMITTED",
     });
@@ -765,6 +777,27 @@ class OrderService {
         throw err;
       }
 
+      if (expiryPaymentId !== null) {
+        const Payment = require("../models/PaymentTransaction");
+        const latest = await Payment.findOne({
+          where: { order_id: order.order_id },
+          order: [["payment_id", "DESC"]],
+          transaction,
+        });
+        const at = await pricing.now(transaction);
+        if (
+          order.payment_method !== "vnpay" ||
+          order.order_status !== "processing" ||
+          order.payment_status === "paid" ||
+          !latest ||
+          latest.payment_id !== expiryPaymentId ||
+          new Date(order.payment_expires_at).getTime() + 120000 > at.getTime()
+        ) {
+          await transaction.commit();
+          return null;
+        }
+      }
+
       if (order.order_status === "cancelled") {
         const err = new Error("Đơn hàng này đã được hủy trước đó");
         err.status = 409;
@@ -779,6 +812,7 @@ class OrderService {
         throw err;
       }
 
+      await payments.assertCancellationAllowed(order, transaction);
       // Lấy chi tiết đơn hàng sắp xếp theo book_id ASC để hoàn kho chống Deadlock
       const items = await OrderItem.findAll({
         where: { order_id: order.order_id },
@@ -797,6 +831,11 @@ class OrderService {
       await vouchers.restore(order.voucher_id, transaction);
 
       order.order_status = "cancelled";
+      await payments.markCancelled(
+        order,
+        transaction,
+        expiryPaymentId !== null,
+      );
       await order.save({ transaction });
 
       await Shipment.update(
@@ -811,6 +850,12 @@ class OrderService {
       throw error;
     }
     return this.getCustomerOrderById(userId, cancelledOrderId);
+  }
+
+  async expireOnlineOrder(orderId, paymentId) {
+    const order = await Order.findByPk(orderId);
+    if (order)
+      return this.cancelOrderByCustomer(order.user_id, orderId, paymentId);
   }
 
   /**
@@ -835,6 +880,7 @@ class OrderService {
     const { rows, count } = await Order.findAndCountAll({
       where,
       include: [
+        payments.paymentInclude(),
         { model: Voucher, as: "voucher", attributes: ["voucher_id", "code"] },
         {
           model: User,
@@ -881,6 +927,7 @@ class OrderService {
   async getAdminOrderById(orderId) {
     const order = await Order.findByPk(orderId, {
       include: [
+        payments.paymentInclude(),
         { model: Voucher, as: "voucher", attributes: ["voucher_id", "code"] },
         {
           model: User,
@@ -961,6 +1008,7 @@ class OrderService {
 
       // Nếu Admin hủy đơn (từ processing hoặc confirmed) -> Hoàn lại tồn kho
       if (nextStatus === "cancelled") {
+        await payments.assertCancellationAllowed(order, transaction);
         const items = await OrderItem.findAll({
           where: { order_id: order.order_id },
           order: [["book_id", "ASC"]],
@@ -976,12 +1024,16 @@ class OrderService {
         }
 
         await vouchers.restore(order.voucher_id, transaction);
+        await payments.markCancelled(order, transaction);
 
         await Shipment.update(
           { shipping_status: "failed" },
           { where: { order_id: order.order_id }, transaction },
         );
       }
+
+      if (nextStatus !== "cancelled")
+        await payments.assertFulfillmentAllowed(order, transaction);
 
       // Nếu chuyển sang shipping -> Cập nhật thông tin vận đơn trong SHIPMENT
       if (nextStatus === "shipping") {
@@ -1034,41 +1086,58 @@ class OrderService {
    * [ADMIN] Cập nhật riêng thông tin vận đơn (carrier_name, tracking_code, estimated_delivery)
    */
   async updateShipmentInfoByAdmin(orderId, payload = {}) {
-    const order = await Order.findByPk(orderId);
-    if (!order) {
-      const err = new Error("Không tìm thấy đơn hàng");
-      err.status = 404;
-      throw err;
-    }
+    await sequelize.transaction(async (transaction) => {
+      const order = await Order.findByPk(orderId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!order) {
+        const err = new Error("Không tìm thấy đơn hàng");
+        err.status = 404;
+        throw err;
+      }
 
-    const shipment = await Shipment.findOne({ where: { order_id: orderId } });
-    if (!shipment) {
-      const err = new Error("Không tìm thấy thông tin vận chuyển của đơn hàng");
-      err.status = 404;
-      throw err;
-    }
-
-    if (payload.carrier_name !== undefined) {
-      shipment.carrier_name = String(payload.carrier_name).trim() || null;
-    }
-    if (payload.tracking_code !== undefined) {
-      shipment.tracking_code = String(payload.tracking_code).trim() || null;
-    }
-    if (payload.estimated_delivery !== undefined) {
-      shipment.estimated_delivery = payload.estimated_delivery
-        ? new Date(payload.estimated_delivery)
-        : null;
-    }
-    if (
-      payload.shipping_status &&
-      ["pending", "picked_up", "in_transit", "delivered", "failed"].includes(
-        payload.shipping_status,
+      if (
+        payload.shipping_status &&
+        ["picked_up", "in_transit", "delivered"].includes(
+          payload.shipping_status,
+        )
       )
-    ) {
-      shipment.shipping_status = payload.shipping_status;
-    }
+        await payments.assertFulfillmentAllowed(order, transaction);
+      const shipment = await Shipment.findOne({
+        where: { order_id: orderId },
+        transaction,
+      });
+      if (!shipment) {
+        const err = new Error(
+          "Không tìm thấy thông tin vận chuyển của đơn hàng",
+        );
+        err.status = 404;
+        throw err;
+      }
 
-    await shipment.save();
+      if (payload.carrier_name !== undefined) {
+        shipment.carrier_name = String(payload.carrier_name).trim() || null;
+      }
+      if (payload.tracking_code !== undefined) {
+        shipment.tracking_code = String(payload.tracking_code).trim() || null;
+      }
+      if (payload.estimated_delivery !== undefined) {
+        shipment.estimated_delivery = payload.estimated_delivery
+          ? new Date(payload.estimated_delivery)
+          : null;
+      }
+      if (
+        payload.shipping_status &&
+        ["pending", "picked_up", "in_transit", "delivered", "failed"].includes(
+          payload.shipping_status,
+        )
+      ) {
+        shipment.shipping_status = payload.shipping_status;
+      }
+
+      await shipment.save({ transaction });
+    });
     return await this.getAdminOrderById(orderId);
   }
 }

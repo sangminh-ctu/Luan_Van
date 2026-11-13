@@ -221,14 +221,55 @@
                 class="form-check-input mt-0"
                 type="radio"
                 value="cod"
+                :disabled="isSubmitting"
               />
               <label
                 for="payCodMethod"
                 class="form-check-label d-flex align-items-center gap-2 small fw-medium text-dark cursor-pointer flex-grow-1"
               >
                 <i class="bi bi-cash-coin text-danger fs-5"></i>
-                <span>Thanh toán khi nhận hàng (COD)</span>
+                <span>Thanh toán khi nhận hàng (<strong>COD</strong>)</span>
               </label>
+            </div>
+          </div>
+
+          <div class="border rounded-2 px-3 py-3 mb-4 bg-white">
+            <label
+              class="form-check-label d-flex align-items-center gap-3 small fw-medium text-dark cursor-pointer"
+            >
+              <input
+                v-model="paymentMethod"
+                type="radio"
+                class="form-check-input mt-0"
+                value="vnpay"
+                :disabled="
+                  isSubmitting ||
+                  !paymentConfig.vnpay_enabled ||
+                  totalAmount < paymentConfig.min_amount
+                "
+              />
+              <span class="d-flex align-items-center gap-2">
+                <img
+                  :src="vnpayIcon"
+                  alt=""
+                  width="24"
+                  height="24"
+                  class="flex-shrink-0"
+                  style="object-fit: contain"
+                />
+                <span>Thanh toán qua <strong>VNPAY</strong></span>
+              </span>
+            </label>
+            <div class="small text-secondary mt-2">
+              <template v-if="!paymentConfig.vnpay_enabled"
+                >VNPAY hiện chưa sẵn sàng. Bạn có thể chọn COD.</template
+              >
+              <template v-else-if="totalAmount < paymentConfig.min_amount"
+                >VNPAY áp dụng cho đơn từ {{ formatCurrency(paymentConfig.min_amount) }}.</template
+              >
+              <template v-else-if="paymentMethod === 'vnpay'"
+                >Thời hạn thanh toán: {{ paymentConfig.reservation_minutes }} phút.</template
+              >
             </div>
           </div>
 
@@ -246,6 +287,8 @@
                 isSubmitting ||
                 previewBusy ||
                 !quote ||
+                (paymentMethod === 'vnpay' &&
+                  (!paymentConfig.vnpay_enabled || totalAmount < paymentConfig.min_amount)) ||
                 hasUnappliedCode ||
                 cartStore.selectedCount === 0 ||
                 cartStore.hasSelectedIssues
@@ -464,6 +507,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { addressService } from '@/services/addressService'
 import { orderService } from '@/services/orderService'
 import { getBookCoverUrl } from '@/utils/imageHelper'
+import vnpayIcon from '@/assets/images/logo/Icon-VNPAY-QR.webp'
 
 const router = useRouter()
 const cartStore = useCartStore()
@@ -474,6 +518,7 @@ const isSubmitting = ref(false)
 
 const loadedDefaultAddress = ref(null)
 const paymentMethod = ref('cod')
+const paymentConfig = ref({ vnpay_enabled: false, min_amount: 5000, reservation_minutes: 15 })
 const conflictItems = ref([])
 const priceChanges = ref([])
 const voucherDraft = ref('')
@@ -789,8 +834,16 @@ async function handlePlaceOrder() {
     const res = await orderService.createOrder(payload)
     const createdOrder = res.order
 
-    await cartStore.fetchCart()
-
+    await cartStore.fetchCart().catch(() => null)
+    if (createdOrder.payment_method === 'vnpay') {
+      try {
+        const payment = await orderService.paymentLink(createdOrder.order_id)
+        window.location.assign(payment.payment_url)
+      } catch {
+        router.push({ path: '/orders', query: { placed: createdOrder.order_code } })
+      }
+      return
+    }
     router.push({
       path: '/orders',
       query: { placed: createdOrder.order_code },
@@ -836,11 +889,13 @@ onMounted(async () => {
   try {
     isInitialLoading.value = true
 
-    const [, addrRes, shipRes] = await Promise.all([
+    const [, addrRes, shipRes, payRes] = await Promise.all([
       cartStore.fetchCart(),
       addressService.getAddresses().catch(() => ({ addresses: [] })),
       orderService.getShippingConfig().catch(() => null),
+      orderService.getPaymentConfig().catch(() => null),
     ])
+    if (payRes) paymentConfig.value = payRes
 
     if (shipRes) {
       shippingConfig.free_shipping_threshold = Number(shipRes.free_shipping_threshold || 300000)

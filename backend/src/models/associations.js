@@ -119,6 +119,9 @@ HomeSpotlightCategory.belongsTo(Category, { foreignKey: 'category_id', as: 'cate
 
 const Voucher = require('./Voucher');
 const MembershipTier = require('./MembershipTier');
+const PaymentTransaction = require('./PaymentTransaction');
+Order.hasMany(PaymentTransaction, { foreignKey: 'order_id', as: 'payments' });
+PaymentTransaction.belongsTo(Order, { foreignKey: 'order_id', as: 'order' });
 Voucher.belongsTo(MembershipTier, { foreignKey: 'min_tier_id', as: 'minimum_tier', onDelete: 'RESTRICT' });
 Voucher.hasMany(Order, { foreignKey: 'voucher_id', as: 'orders', onDelete: 'SET NULL', onUpdate: 'CASCADE' });
 Order.belongsTo(Voucher, { foreignKey: 'voucher_id', as: 'voucher', onDelete: 'SET NULL', onUpdate: 'CASCADE' });

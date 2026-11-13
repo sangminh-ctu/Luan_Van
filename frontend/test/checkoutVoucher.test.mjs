@@ -13,7 +13,7 @@ const compiled = compileScript(descriptor, { id: 'checkout-voucher-test' })
   .replace('export default', 'return')
 const factory = new Function(
   'deps',
-  `const {ref,reactive,computed,onMounted,onBeforeUnmount,watch,useRouter,useCartStore,useAuthStore,addressService,orderService,getBookCoverUrl} = deps; ${compiled}`,
+  `const {ref,reactive,computed,onMounted,onBeforeUnmount,watch,useRouter,useCartStore,useAuthStore,addressService,orderService,getBookCoverUrl,vnpayIcon} = deps; ${compiled}`,
 )
 const plain = (code = '', discount = 0) => ({
   subtotal: 100000,
@@ -52,6 +52,11 @@ async function harness(t) {
     fetchCart: async () => ({ success: true }),
   })
   const api = {
+    getPaymentConfig: async () => ({
+      vnpay_enabled: true,
+      min_amount: 5000,
+      reservation_minutes: 15,
+    }),
     preview: async () => plain(),
     getShippingConfig: async () => ({
       free_shipping_threshold: 300000,
@@ -168,6 +173,57 @@ test('Order submission uses the server quote and sends one applied code', async 
     total_amount: 120000,
   })
   assert.equal(pushes[0].path, '/orders')
+})
+
+test('VNPAY checkout creates one order then redirects using its backend payment URL', async (t) => {
+  const { state, api, cart } = await harness(t)
+  let creates = 0,
+    linkedOrder,
+    destination
+  const previousWindow = globalThis.window
+  globalThis.window = {
+    location: {
+      assign: (url) => {
+        destination = url
+      },
+    },
+  }
+  t.after(() => {
+    globalThis.window = previousWindow
+  })
+  state.paymentMethod.value = 'vnpay'
+  api.createOrder = async (payload) => {
+    creates++
+    assert.equal(payload.payment_method, 'vnpay')
+    return { order: { order_id: 42, order_code: 'PAY42', payment_method: 'vnpay' } }
+  }
+  api.paymentLink = async (id) => {
+    linkedOrder = id
+    return { payment_url: 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?signed=1' }
+  }
+  // A cart refresh failure after order commit must not prevent opening payment.
+  cart.fetchCart = async () => {
+    throw new Error('cart unavailable')
+  }
+  await state.handlePlaceOrder()
+  assert.equal(creates, 1)
+  assert.equal(linkedOrder, 42)
+  assert.match(destination, /^https:\/\/sandbox.vnpayment.vn\//)
+})
+
+test('Payment URL failure after creating order returns to order history without creating again', async (t) => {
+  const { state, api, pushes } = await harness(t)
+  let creates = 0
+  api.createOrder = async () => {
+    creates++
+    return { order: { order_id: 42, order_code: 'PAY42', payment_method: 'vnpay' } }
+  }
+  api.paymentLink = async () => {
+    throw new Error('temporary failure')
+  }
+  await state.handlePlaceOrder()
+  assert.equal(creates, 1)
+  assert.deepEqual(pushes.at(-1), { path: '/orders', query: { placed: 'PAY42' } })
 })
 
 test('Suggested voucher is applied through a new preview without placing an order', async (t) => {

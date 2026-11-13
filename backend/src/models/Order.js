@@ -52,6 +52,7 @@ const Order = sequelize.define('Order', {
         type: DataTypes.DECIMAL(14, 2),
         allowNull: false
     },
+    payment_expires_at: { type: DataTypes.DATE, allowNull: true },
     payment_method: {
         type: DataTypes.STRING(30),
         allowNull: false

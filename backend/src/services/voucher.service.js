@@ -5,6 +5,7 @@ const membership = require("./membership.service");
 function fail(code, message, status = 409) {
   throw Object.assign(new Error(message), {
     status,
+    logToConsole: false,
     code,
     fieldErrors: { voucher_code: message },
   });

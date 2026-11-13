@@ -31,6 +31,8 @@ app.use('/api/site-config', require('./routes/customer/site-config.routes'));
 app.use('/api/cart', require('./routes/customer/cart.routes'));
 app.use('/api/addresses', require('./routes/customer/address.routes'));
 app.use('/api/orders', require('./routes/customer/order.routes'));
+app.use('/api/payments/vnpay', require('./routes/payment.routes'));
+app.use('/api/vnpay', require('./routes/payment.routes'));
 app.use('/api/membership', require('./routes/customer/membership.routes'));
 
 app.use('/api/flash-sales', require('./routes/customer/flash-sale.routes'));
@@ -51,7 +53,7 @@ app.use('/api/admin', verifyToken, requireAdmin, require('./routes/admin/invento
 
 // Global Error Handler
 app.use((err, req, res, next) => {
-    console.error(err.stack || err);
+    if (err.logToConsole !== false) console.error(err.stack || err);
     const dbCode = err.original?.code || err.parent?.code;
     if (dbCode === '23P01') { err.status = 409; err.message = 'Thời gian trùng với một chương trình Flash Sale đã bật.'; }
     if (['23503', '23001'].includes(dbCode) && !err.status) { err.status = 409; err.message = 'Dữ liệu đang được tham chiếu và không thể xóa.'; }

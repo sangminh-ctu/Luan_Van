@@ -189,7 +189,7 @@
               </div>
               <div class="d-flex justify-content-between align-items-center mb-2">
                 <span class="text-secondary">Hình thức thanh toán:</span>
-                <strong class="text-dark">Thanh toán khi nhận hàng (COD)</strong>
+                <strong class="text-dark">{{ order.payment_method === 'vnpay' ? 'VNPAY Sandbox' : 'Thanh toán khi nhận hàng (COD)' }}</strong>
               </div>
               <div class="d-flex justify-content-between align-items-center">
                 <span class="text-secondary">Trạng thái thanh toán:</span>
@@ -199,6 +199,17 @@
               </div>
             </div>
 
+            <div v-if="order.payment_method === 'vnpay'" class="small mb-3">
+              <div v-if="order.payment_review_required" class="alert alert-danger">Cần đối soát giao dịch với VNPAY. Không giao hàng hoặc đánh dấu đã hoàn tiền khi chưa kiểm tra thực tế.</div>
+              <div v-else-if="order.payment_status !== 'paid'" class="alert alert-warning">Đơn chưa thanh toán thành công, chưa thể xác nhận hoặc giao hàng.</div>
+              <p v-if="paymentMessage" class="text-danger" role="alert">{{ paymentMessage }}</p>
+              <button v-if="order.payment && !order.payment_review_required && order.payment_status !== 'paid'" class="btn btn-sm btn-outline-primary" :disabled="checkingPayment" @click="checkPayment">{{ checkingPayment ? 'Đang kiểm tra…' : 'Đối soát với VNPAY' }}</button>
+              <div v-for="payment in order.payments" :key="payment.payment_id" class="mt-2 border rounded p-2 text-break">
+                <div>Mã giao dịch: {{ payment.reference }}</div>
+                <div v-if="payment.provider_transaction_no">Mã VNPAY: {{ payment.provider_transaction_no }}</div>
+                <div v-if="payment.review_reason" class="text-danger">{{ payment.review_reason }}</div>
+              </div>
+            </div>
             <hr>
 
             <!-- Bước 1: Chờ xác nhận -> Xác nhận đơn hoặc Hủy đơn -->
@@ -206,7 +217,7 @@
               <button
                 type="button"
                 class="btn btn-primary fw-semibold py-2"
-                :disabled="isUpdating"
+                :disabled="isUpdating || paymentBlocked"
                 @click="handleTransition('confirmed')"
               >
                 <span v-if="isUpdating" class="spinner-border spinner-border-sm me-1"></span>
@@ -216,7 +227,7 @@
               <button
                 type="button"
                 class="btn btn-outline-danger fw-semibold py-2"
-                :disabled="isUpdating"
+                :disabled="isUpdating || onlineCancellationBlocked"
                 @click="showCancelConfirm = true"
               >
                 <i class="bi bi-x-circle me-1"></i>Hủy đơn & Hoàn kho
@@ -247,7 +258,7 @@
                 <button
                   type="button"
                   class="btn btn-primary fw-semibold py-2"
-                  :disabled="isUpdating"
+                  :disabled="isUpdating || paymentBlocked"
                   @click="handleTransition('shipping')"
                 >
                   <span v-if="isUpdating" class="spinner-border spinner-border-sm me-1"></span>
@@ -257,7 +268,7 @@
                 <button
                   type="button"
                   class="btn btn-outline-danger fw-semibold py-2"
-                  :disabled="isUpdating"
+                  :disabled="isUpdating || onlineCancellationBlocked"
                   @click="showCancelConfirm = true"
                 >
                   <i class="bi bi-x-circle me-1"></i>Hủy đơn & Hoàn kho
@@ -270,7 +281,7 @@
               <button
                 type="button"
                 class="btn btn-success fw-semibold py-2"
-                :disabled="isUpdating"
+                :disabled="isUpdating || paymentBlocked"
                 @click="handleTransition('delivered')"
               >
                 <span v-if="isUpdating" class="spinner-border spinner-border-sm me-1"></span>
@@ -389,13 +400,26 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { adminOrderService } from '@/services/orderService';
+import { adminOrderService, orderService } from '@/services/orderService';
 import { getBookCoverUrl } from '@/utils/imageHelper';
 
 const route = useRoute();
 const order = ref(null);
+const checkingPayment = ref(false), paymentMessage = ref('');
+const paymentBlocked = computed(() => order.value?.payment_method === 'vnpay' && (order.value.payment_status !== 'paid' || order.value.payment_review_required));
+const onlineCancellationBlocked = computed(() => order.value?.payment_method === 'vnpay' && (order.value.payment_status === 'paid' || order.value.payment_review_required));
+async function checkPayment() {
+  checkingPayment.value = true;
+  paymentMessage.value = '';
+  try {
+    await orderService.reconcilePayment(order.value.payment.reference);
+    const data = await adminOrderService.getOrderById(order.value.order_id);
+    order.value = data.order;
+  } catch (error) { paymentMessage.value = error.response?.data?.message || 'Chưa đối soát được giao dịch. Vui lòng thử lại sau.'; }
+  finally { checkingPayment.value = false; }
+}
 const isLoading = ref(false);
 const isUpdating = ref(false);
 const showCancelConfirm = ref(false);

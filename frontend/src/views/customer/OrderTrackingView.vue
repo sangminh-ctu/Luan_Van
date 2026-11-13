@@ -178,8 +178,13 @@
                 <span class="fs-5 fw-bold text-danger">{{ formatCurrency(order.total_amount) }}</span>
               </div>
 
-              <!-- Chỉ cho phép khách hủy đơn khi order_status === 'processing' -->
-              <div v-if="order.order_status === 'processing'">
+              <div v-if="order.payment_method === 'vnpay'" class="small mb-2">
+                <span v-if="order.payment_review_required" class="text-danger d-block">Giao dịch cần đối soát. Vui lòng liên hệ cửa hàng.</span>
+                <span v-else-if="order.can_pay" class="text-secondary d-block">Thanh toán trước {{ new Date(order.payment_expires_at).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) }}</span>
+                <button v-if="order.can_pay" class="btn btn-danger btn-sm me-2 mt-2" :disabled="payingId === order.order_id" @click="payOrder(order)">{{ payingId === order.order_id ? 'Đang chuyển…' : 'Thanh toán VNPAY' }}</button>
+                <RouterLink v-if="order.payment" class="btn btn-outline-secondary btn-sm mt-2" :to="{ path: '/payment/vnpay-return', query: { reference: order.payment.reference } }">Kiểm tra thanh toán</RouterLink>
+              </div>
+              <div v-if="order.can_cancel">
                 <button
                   type="button"
                   class="btn btn-outline-danger btn-sm px-3 fw-semibold"
@@ -289,6 +294,16 @@ const orders = ref([]);
 const isLoading = ref(false);
 const activeStatus = ref('all');
 const cancellingId = ref(null);
+const payingId = ref(null);
+async function payOrder(order) {
+  payingId.value = order.order_id;
+  try {
+    const data = await orderService.paymentLink(order.order_id);
+    window.location.assign(data.payment_url);
+  } catch (error) {
+    triggerToast(error.response?.data?.message || 'Không thể mở thanh toán. Vui lòng thử lại.', 'error');
+  } finally { payingId.value = null; }
+}
 const orderToCancel = ref(null);
 
 const pagination = reactive({
