@@ -13,7 +13,14 @@
     "test:membership": "node test/test_membership.js",
     "migrate:vnpay": "node scripts/run_migration_012.js",
     "migrate:vnpay-return": "node scripts/run_migration_013.js",
-    "test:vnpay": "node test/test_vnpay.js"
+    "test:vnpay": "node test/test_vnpay.js",
+    "migrate:reviews": "node scripts/run_migration_014.js",
+    "migrate:review-moderation": "node scripts/run_migration_015.js",
+    "migrate:order-item-reviews": "node scripts/run_migration_016.js",
+    "migrate:review-cleanup": "node scripts/run_migration_017.js",
+    "migrate:notification-read": "node scripts/run_migration_018.js",
+    "migrate:customer-notifications": "node scripts/run_migration_019.js",
+    "test:review-moderation": "node test/test_review_moderation.js"
   },
   "keywords": [],
   "author": "",

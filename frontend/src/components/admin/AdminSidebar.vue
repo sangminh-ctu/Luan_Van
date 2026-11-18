@@ -26,6 +26,7 @@
         </a>
         <ul class="nav flex-column ms-3 mt-1" v-show="openMenu.books">
           <li class="nav-item"><router-link to="/admin/books" class="nav-link text-muted py-2 small" active-class="text-primary fw-bold bg-light"><i class="bi bi-dash me-1"></i> Danh sách sách</router-link></li>
+          <li class="nav-item"><router-link to="/admin/books/reviews" class="nav-link text-muted py-2 small" active-class="text-primary fw-bold bg-light"><i class="bi bi-dash me-1"></i> Đánh giá sách</router-link></li>
           <li class="nav-item"><router-link to="/admin/categories" class="nav-link text-muted py-2 small" active-class="text-primary fw-bold bg-light"><i class="bi bi-dash me-1"></i> Thể loại</router-link></li>
           <li class="nav-item"><router-link to="/admin/authors" class="nav-link text-muted py-2 small" active-class="text-primary fw-bold bg-light"><i class="bi bi-dash me-1"></i> Tác giả</router-link></li>
           <li class="nav-item"><router-link to="/admin/publishers" class="nav-link text-muted py-2 small" active-class="text-primary fw-bold bg-light"><i class="bi bi-dash me-1"></i> Nhà xuất bản</router-link></li>

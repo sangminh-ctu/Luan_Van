@@ -50,7 +50,9 @@ const router = createRouter({
         { path: 'checkout', name: 'checkout', component: CheckoutView, meta: { requiresAuth: true } },
         { path: 'payment/vnpay-return', name: 'vnpay-return', component: () => import('@/views/customer/PaymentResultView.vue'), meta: { requiresAuth: true } },
         { path: 'orders', name: 'customer-orders', component: OrderTrackingView, meta: { requiresAuth: true } },
-        { path: 'account', name: 'customer-account', component: () => import('@/views/customer/AccountView.vue'), meta: { requiresAuth: true } }
+        { path: 'orders/:orderId', name: 'customer-order-detail', component: OrderTrackingView, meta: { requiresAuth: true } },
+        { path: 'account', name: 'customer-account', component: () => import('@/views/customer/AccountView.vue'), meta: { requiresAuth: true } },
+        { path: 'account/notifications', name: 'customer-notifications', component: () => import('@/views/customer/AccountView.vue'), meta: { requiresAuth: true } }
       ]
     },
 
@@ -63,6 +65,7 @@ const router = createRouter({
         { path: '', name: 'admin-dashboard', component: DashboardView },
         { path: 'site-config', name: 'admin-site-config', component: () => import('@/views/admin/SiteConfigView.vue') },
         { path: 'books', name: 'admin-books', component: BookListView },
+        { path: 'books/reviews', name: 'admin-book-reviews', component: () => import('@/views/admin/BookReviewsView.vue') },
         { path: 'books/create', name: 'admin-books-create', component: BookFormView },
         { path: 'books/:id/edit', name: 'admin-books-edit', component: BookFormView },
         { path: 'categories', name: 'admin-categories', component: CategoryView },

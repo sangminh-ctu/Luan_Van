@@ -186,19 +186,28 @@
                   </span>
                 </button>
               </li>
+              <li class="nav-item">
+                <router-link :to="{ name: 'customer-notifications' }"
+                  class="nav-link d-flex align-items-center gap-2 px-3 py-2"
+                  :class="activeTab === 'notifications' ? 'text-primary-emphasis bg-primary-subtle fw-semibold' : 'text-dark'">
+                  <i class="bi bi-bell fs-5 text-secondary" aria-hidden="true"></i>
+                  <span>Thông báo</span>
+                  <span v-if="notificationStore.unread" class="badge rounded-pill bg-primary">{{ notificationStore.unread }}</span>
+                </router-link>
+              </li>
             </ul>
           </div>
         </div>
 
         <!-- CỘT PHẢI: NỘI DUNG CHÍNH -->
         <div class="col-lg-9">
-          <div v-if="accountError" class="alert alert-danger" role="alert">
+          <div v-if="accountError && activeTab !== 'notifications'" class="alert alert-danger" role="alert">
             {{ accountError }}
             <button class="btn btn-sm btn-outline-danger" @click="fetchAccountData">Thử lại</button>
           </div>
           <!-- Thanh nhắc cập nhật thông tin nếu thiếu SĐT hoặc họ tên -->
           <div
-            v-if="needsProfileUpdate"
+            v-if="needsProfileUpdate && activeTab !== 'notifications'"
             class="alert bg-white border-0 shadow-sm rounded-3 py-2 px-3 mb-3 d-flex align-items-center gap-2 small"
             role="alert"
           >
@@ -214,7 +223,7 @@
           </div>
 
           <!-- Khối Banner Thành Viên & Thống kê Ưu đãi / Thành tích -->
-          <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-3">
+          <div v-if="activeTab !== 'notifications'" class="card border-0 shadow-sm rounded-3 overflow-hidden mb-3">
             <!-- Banner Linh vật & Nút Thành viên -->
             <div class="member-banner position-relative py-4 text-center">
               <button
@@ -310,7 +319,8 @@
           </div>
 
           <!-- TAB 1: HỒ SƠ CÁ NHÂN -->
-          <div v-if="activeTab === 'profile'" class="card border-0 shadow-sm rounded-3 p-4">
+          <NotificationsPanel v-if="activeTab === 'notifications'" />
+          <div v-else-if="activeTab === 'profile'" class="card border-0 shadow-sm rounded-3 p-4">
             <h5 class="fw-bold text-dark mb-4">Hồ sơ cá nhân</h5>
 
             <form @submit.prevent="saveProfile">
@@ -836,14 +846,17 @@
 import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
+import { useNotificationStore } from '@/stores/notificationStore'
+import NotificationsPanel from '@/components/customer/NotificationsPanel.vue'
 import { userService } from '@/services/userService'
 import { addressService } from '@/services/addressService'
 
 const authStore = useAuthStore()
+const notificationStore = useNotificationStore()
 const route = useRoute()
 const router = useRouter()
 
-const activeTab = ref(route.query.tab || 'profile')
+const activeTab = computed(() => route.name === 'customer-notifications' ? 'notifications' : route.query.tab || 'profile')
 const accountGroupOpen = ref(true)
 
 const profile = ref({
@@ -1033,8 +1046,7 @@ async function fetchAddresses() {
 }
 
 function switchTab(tab) {
-  activeTab.value = tab
-  router.replace({ query: { ...route.query, tab } })
+  router.replace({ name: 'customer-account', query: { ...route.query, tab } })
   if (tab === 'addresses' && addresses.value.length === 0) {
     fetchAddresses()
   }

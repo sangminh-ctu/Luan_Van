@@ -304,15 +304,47 @@ async function run() {
       orders.updateOrderStatusByAdmin(order.order_id, { status: "cancelled" }),
       (e) => e.status === 409,
     );
+    const notifications = require("../src/services/notification.service");
+    const originalPublish = notifications.publishOrder;
+    notifications.publishOrder = async () => { throw new Error("injected notification failure"); };
+    try {
+      await assert.rejects(
+        orders.updateOrderStatusByAdmin(order.order_id, { status: "confirmed" }),
+        /injected notification failure/,
+      );
+      assert.equal((await Order.findByPk(order.order_id)).order_status, "processing");
+    } finally {
+      notifications.publishOrder = originalPublish;
+    }
     await orders.updateOrderStatusByAdmin(order.order_id, {
       status: "confirmed",
     });
     await orders.updateOrderStatusByAdmin(order.order_id, {
       status: "shipping",
+      shipping_status: "picked_up",
+      carrier_name: "Test carrier",
+    });
+    await orders.updateShipmentInfoByAdmin(order.order_id, {
+      shipping_status: "in_transit",
+      tracking_code: "TEST123",
+    });
+    await orders.updateShipmentInfoByAdmin(order.order_id, {
+      shipping_status: "in_transit",
+      tracking_code: "TEST124",
     });
     await orders.updateOrderStatusByAdmin(order.order_id, {
       status: "delivered",
     });
+    const [deliveryNotifications] = await db.query(
+      "SELECT event_type, message, recipient_user_id FROM customer_notification WHERE order_id = $1 ORDER BY notification_id",
+      { bind: [order.order_id] },
+    );
+    assert.deepEqual(
+      deliveryNotifications.map(({ event_type }) => event_type),
+      ["order_placed", "order_confirmed", "order_picked_up", "order_shipping", "order_delivered"],
+    );
+    assert.ok(deliveryNotifications.every(row => row.recipient_user_id === user.id));
+    assert.match(deliveryNotifications[3].message, /TEST123/);
     assert.equal(
       (await require("../src/services/membership.service").get(user.id))
         .eligible_spend,
@@ -380,6 +412,11 @@ async function run() {
       }),
     ]);
     assert.equal(cancels.filter((r) => r.status === "fulfilled").length, 1);
+    const [[cancelNotification]] = await db.query(
+      "SELECT count(*)::int AS count FROM customer_notification WHERE order_id = $1 AND event_type = 'order_cancelled'",
+      { bind: [cancelled.order_id] },
+    );
+    assert.equal(cancelNotification.count, 1);
     assert.equal(await stock(), stockReserved + 1);
     assert.equal(
       (await Voucher.findByPk(cancelVoucher.voucher_id)).used_count,

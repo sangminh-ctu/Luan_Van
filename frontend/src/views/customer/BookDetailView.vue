@@ -191,17 +191,18 @@
                 </div>
               </div>
 
-              <!-- Đánh giá sao -->
-              <div class="d-flex align-items-center small gap-2 mb-3">
-                <div class="text-warning" style="font-size: 13px;">
-                  <i class="bi bi-star"></i>
-                  <i class="bi bi-star"></i>
-                  <i class="bi bi-star"></i>
-                  <i class="bi bi-star"></i>
-                  <i class="bi bi-star"></i>
-                </div>
-                <span class="text-warning small">(0 đánh giá)</span>
-              </div>
+              <a v-if="reviewSummary" href="#book-reviews" class="book-rating mb-3"
+                :aria-label="reviewSummary.total ? `${reviewSummary.average} trên 5 sao, ${reviewSummary.total} đánh giá` : 'Chưa có đánh giá'">
+                <span class="book-rating-stars" aria-hidden="true">
+                  <span v-for="star in 5" :key="star" class="book-rating-star">
+                    <i class="bi bi-star"></i>
+                    <span class="book-rating-fill" :style="{
+                      width: Math.max(0, Math.min(1, (reviewSummary.average ?? 0) - star + 1)) * 100 + '%'
+                    }"><i class="bi bi-star-fill"></i></span>
+                  </span>
+                </span>
+                <span>({{ reviewSummary.total }} đánh giá)</span>
+              </a>
 
               <!-- Khối Giá Bán -->
               <div class="mb-3">
@@ -363,47 +364,99 @@
           </div>
         </div>
 
-        <!-- 3. KHỐI ĐÁNH GIÁ SẢN PHẨM (Hình 3 & 4 - Giao diện sẵn sàng để sau này làm) -->
-        <div class="bg-white rounded-3 shadow-sm p-4 mb-3">
-          <h6 class="fw-bold text-dark mb-3">Đánh giá sản phẩm</h6>
-          
-          <div class="row align-items-center g-4">
-            <!-- Điểm tổng kết -->
-            <div class="col-md-2 text-center">
-              <div class="display-5 fw-normal text-dark mb-0">0<span class="fs-4 text-dark">/5</span></div>
-              <div class="text-secondary opacity-50 mb-1" style="font-size: 14px;">
-                <i class="bi bi-star-fill me-1"></i>
-                <i class="bi bi-star-fill me-1"></i>
-                <i class="bi bi-star-fill me-1"></i>
-                <i class="bi bi-star-fill me-1"></i>
-                <i class="bi bi-star-fill"></i>
-              </div>
-              <div class="text-muted small">(0 đánh giá)</div>
-            </div>
-
-            <!-- Các mức sao -->
-            <div class="col-md-4">
-              <div class="d-flex align-items-center mb-1 small" v-for="star in [5, 4, 3, 2, 1]" :key="star">
-                <span class="text-secondary" style="width: 45px; font-size: 12px;">{{ star }} sao</span>
-                <div class="progress flex-grow-1 mx-2" style="height: 4px; background-color: #f0f0f0;">
-                  <div class="progress-bar bg-warning" role="progressbar" style="width: 0%"></div>
-                </div>
-                <span class="text-secondary" style="width: 30px; text-align: right; font-size: 12px;">0%</span>
-              </div>
-            </div>
-
-            <!-- Nút Viết đánh giá -->
-            <div class="col-md-6 text-center">
-              <button 
-                class="btn btn-outline-danger px-5 py-2 fw-semibold rounded-2"
-                style="min-width: 240px;"
-                @click="openReviewModal"
-              >
-                <i class="bi bi-pencil me-2"></i> Viết đánh giá
-              </button>
-            </div>
+        <section id="book-reviews" class="bg-white rounded-3 shadow-sm p-4 mb-3">
+          <h6 class="fw-bold mb-3">Đánh giá sản phẩm</h6>
+          <p v-if="reviewsLoading" role="status">Đang tải đánh giá…</p>
+          <div v-if="reviewsError" class="text-danger mb-3" role="alert">
+            Không thể tải đánh giá.
+            <button type="button" class="btn btn-sm btn-link" @click="loadReviews(book.book_id, reviewPage)">
+              Thử lại
+            </button>
           </div>
-        </div>
+          <template v-if="reviewSummary">
+            <p v-if="!reviewSummary.total" class="text-secondary mb-0">Chưa có đánh giá.</p>
+            <template v-else>
+              <p>
+                <strong class="fs-4">{{ reviewSummary.average }}/5</strong>
+                <span class="text-secondary ms-2">{{ reviewSummary.total }} đánh giá</span>
+              </p>
+              <div v-for="star in [5, 4, 3, 2, 1]" :key="star" class="d-flex align-items-center gap-2 small mb-1">
+                <span>{{ star }} sao</span>
+                <div class="progress flex-grow-1" style="height: 5px; max-width: 220px;" aria-hidden="true">
+                  <div class="progress-bar bg-warning" :style="{ width: (reviewSummary.counts[star - 1] / reviewSummary.total * 100) + '%' }"></div>
+                </div>
+                <span>{{ reviewSummary.counts[star - 1] }}</span>
+              </div>
+              <h6 class="review-list-heading mt-4 mb-0">Mới nhất</h6>
+              <ul class="list-unstyled mb-0">
+                <li v-for="review in displayedReviews" :key="review.review_id" class="review-entry">
+                  <div class="review-author">
+                    <strong>{{ review.author_name }}</strong>
+                    <time v-if="review.created_at" :datetime="review.created_at" class="text-secondary small">
+                      {{ new Date(review.created_at).toLocaleDateString('vi-VN') }}
+                    </time>
+                  </div>
+                  <div class="review-content">
+                    <div class="review-stars" role="img" :aria-label="`${review.rating} trên 5 sao`">
+                      <i v-for="star in 5" :key="star" class="bi"
+                        :class="star <= review.rating ? 'bi-star-fill' : 'bi-star'" aria-hidden="true"></i>
+                    </div>
+                    <p v-if="review.comment" :id="`review-comment-${review.review_id}`" class="review-comment">
+                      {{ expandedReviews[review.review_id] ? review.comment : review.preview }}
+                    </p>
+                    <button v-if="review.preview !== review.comment" type="button"
+                      class="btn btn-link review-toggle"
+                      :aria-controls="`review-comment-${review.review_id}`"
+                      :aria-expanded="Boolean(expandedReviews[review.review_id])"
+                      @click="expandedReviews[review.review_id] = !expandedReviews[review.review_id]">
+                      {{ expandedReviews[review.review_id] ? 'Thu gọn' : 'Xem thêm' }}
+                    </button>
+                    <div v-if="!reportFlags[review.review_id]?.own" class="mt-2 small">
+                      <span v-if="reportFlags[review.review_id]?.reported" class="review-report-status" role="status">
+                        <i class="bi bi-check-circle" aria-hidden="true"></i>
+                        Đã gửi báo cáo
+                      </span>
+                      <button v-else type="button" class="review-report-button"
+                        :disabled="reportBusy" @click="openReport(review.review_id)">
+                        <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+                        Báo cáo
+                      </button>
+                    </div>
+                    <form v-if="reportId === review.review_id" class="mt-2 p-3 rounded bg-light"
+                      @submit.prevent="submitReport(review.review_id)">
+                      <label class="form-label d-block">
+                        Lý do báo cáo
+                        <select v-model="reportReason" class="form-select form-select-sm" :disabled="reportBusy" required>
+                          <option value="" disabled>Chọn lý do</option>
+                          <option v-for="(label, code) in reviewReportReasons" :key="code" :value="code">{{ label }}</option>
+                        </select>
+                      </label>
+                      <label class="form-label d-block">
+                        Mô tả {{ reportReason === 'other' ? '(bắt buộc)' : '(không bắt buộc)' }}
+                        <textarea v-model="reportDescription" class="form-control form-control-sm"
+                          maxlength="1000" rows="2" :disabled="reportBusy" :required="reportReason === 'other'"></textarea>
+                      </label>
+                      <p v-if="reportError" class="small text-danger" role="alert">{{ reportError }}</p>
+                      <button class="btn btn-sm btn-primary me-2"
+                        :disabled="reportBusy || !reportReason || (reportReason === 'other' && !reportDescription.trim())">
+                        Gửi báo cáo
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="reportBusy"
+                        @click="reportId = null">Hủy</button>
+                    </form>
+                  </div>
+                </li>
+              </ul>
+              <nav v-if="reviewSummary.totalPages > 1" aria-label="Phân trang đánh giá" class="d-flex gap-2 align-items-center mt-3">
+                <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="reviewsLoading || reviewSummary.page === 1"
+                  @click="loadReviews(book.book_id, reviewSummary.page - 1)">Trang trước</button>
+                <span>{{ reviewSummary.page }} / {{ reviewSummary.totalPages }}</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="reviewsLoading || reviewSummary.page >= reviewSummary.totalPages"
+                  @click="loadReviews(book.book_id, reviewSummary.page + 1)">Trang sau</button>
+              </nav>
+            </template>
+          </template>
+        </section>
 
         <!-- 4. KHỐI FAHASA GIỚI THIỆU (Carousel chuẩn theo ảnh) -->
         <div class="bg-white rounded-3 shadow-sm p-4 mb-5 position-relative" v-if="relatedBooks.length > 0">
@@ -535,87 +588,21 @@
       </div>
     </div>
 
-    <!-- MODAL VIẾT ĐÁNH GIÁ (GIAO DIỆN SẴN SÀNG) -->
-    <div 
-      class="modal fade show" 
-      tabindex="-1" 
-      style="display: block; background-color: rgba(0,0,0,0.5);" 
-      v-if="showReviewModal"
-    >
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-4 shadow">
-          <div class="modal-header border-0 pb-0">
-            <h5 class="modal-title fw-bold text-dark">Viết đánh giá sản phẩm</h5>
-            <button type="button" class="btn-close" @click="showReviewModal = false"></button>
-          </div>
-          <div class="modal-body py-3">
-            <div class="d-flex align-items-center gap-3 mb-3 p-2 bg-light rounded-3">
-              <img 
-                :src="currentImageUrl" 
-                class="rounded" 
-                style="width: 50px; height: 68px; object-fit: cover;"
-                :alt="book?.title"
-              >
-              <div class="text-truncate fw-semibold small text-dark">{{ book?.title }}</div>
-            </div>
-
-            <div class="mb-3 text-center">
-              <label class="form-label small fw-bold text-secondary mb-1">Đánh giá chung của bạn</label>
-              <div class="fs-2 text-warning cursor-pointer">
-                <i 
-                  v-for="star in 5" 
-                  :key="star"
-                  class="bi"
-                  :class="star <= reviewRating ? 'bi-star-fill text-warning' : 'bi-star text-secondary'"
-                  @click="reviewRating = star"
-                ></i>
-              </div>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label small fw-bold text-secondary">Tiêu đề đánh giá</label>
-              <input 
-                type="text" 
-                class="form-control" 
-                placeholder="Ví dụ: Sách rất hay, đóng gói cẩn thận..."
-                v-model="reviewTitle"
-              >
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label small fw-bold text-secondary">Nội dung nhận xét</label>
-              <textarea 
-                class="form-control" 
-                rows="4" 
-                placeholder="Chia sẻ cảm nhận chi tiết của bạn về nội dung, hình thức cuốn sách..."
-                v-model="reviewComment"
-              ></textarea>
-            </div>
-          </div>
-          <div class="modal-footer border-0 pt-0">
-            <button type="button" class="btn btn-light rounded-pill px-4" @click="showReviewModal = false">
-              Hủy
-            </button>
-            <button type="button" class="btn btn-danger rounded-pill px-4 fw-semibold" @click="submitReviewPlaceholder">
-              Gửi đánh giá
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { reviewService, reviewReportReasons } from '@/services/reviewService';
+import { useAuthStore } from '@/stores/authStore';
 import { publicBookService } from '@/services/bookService';
 import { formatImageUrl, getBookCoverUrl } from '@/utils/imageHelper';
 import { useCartStore } from '@/stores/cartStore';
 
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
 const cartStore = useCartStore();
 
 // Trạng thái dữ liệu
@@ -639,10 +626,100 @@ const canScrollRight = ref(true);
 const showToast = ref(false);
 const toastMessage = ref('');
 const toastType = ref('success');
-const showReviewModal = ref(false);
-const reviewRating = ref(5);
-const reviewTitle = ref('');
-const reviewComment = ref('');
+const reviewSummary = ref(null);
+const reviewPage = ref(1);
+const reviewsLoading = ref(false);
+const reviewsError = ref(false);
+const expandedReviews = ref({});
+const reportFlags = ref({});
+const reportId = ref(null);
+const reportReason = ref('');
+const reportDescription = ref('');
+const reportError = ref('');
+const reportBusy = ref(false);
+
+function openReport(id) {
+  if (!authStore.isLoggedIn) {
+    router.push({ name: 'login', query: { redirect: route.fullPath } });
+    return;
+  }
+  reportId.value = id;
+  reportReason.value = '';
+  reportDescription.value = '';
+  reportError.value = '';
+}
+
+async function submitReport(id) {
+  if (reportBusy.value || !reportReason.value) return;
+  reportBusy.value = true;
+  reportError.value = '';
+  const request = reviewRequest;
+  try {
+    await reviewService.report(id, { reason: reportReason.value, description: reportDescription.value });
+    if (request !== reviewRequest) return;
+    reportFlags.value[id] = { reported: true };
+    reportId.value = null;
+  } catch (error) {
+    if (request !== reviewRequest) return;
+    if (error.response?.data?.code === 'ALREADY_REPORTED') {
+      reportFlags.value[id] = { reported: true };
+      reportId.value = null;
+    } else {
+      reportError.value = error.response?.data?.message || 'Không thể gửi báo cáo.';
+    }
+  } finally {
+    reportBusy.value = false;
+  }
+}
+const displayedReviews = computed(() => (reviewSummary.value?.reviews ?? []).map(review => {
+  const comment = review.comment;
+  if (!comment) return { ...review, preview: comment };
+
+  const lines = comment.split('\n');
+  const firstLines = lines.slice(0, 4).join('\n');
+  const characters = Array.from(firstLines);
+  if (lines.length <= 4 && characters.length <= 360) return { ...review, preview: comment };
+
+  let preview = characters.slice(0, 360).join('');
+  if (characters.length > 360) {
+    const lastSpace = preview.lastIndexOf(' ');
+    if (lastSpace > 0) preview = preview.slice(0, lastSpace);
+  }
+  return { ...review, preview: `${preview.trimEnd()}…` };
+}));
+let reviewRequest = 0;
+
+async function loadReviews(bookId, page = 1) {
+  const request = ++reviewRequest;
+  reportId.value = null;
+  if (page === 1) {
+    reviewSummary.value = null;
+    reportFlags.value = {};
+  }
+  reviewPage.value = page;
+  reviewsLoading.value = true;
+  reviewsError.value = false;
+  try {
+    const result = await reviewService.list(bookId, page);
+    if (request !== reviewRequest) return;
+    if (page > 1 && page > result.totalPages) {
+      await loadReviews(bookId, Math.max(1, result.totalPages));
+      return;
+    }
+    expandedReviews.value = {};
+    reviewSummary.value = result;
+    if (authStore.isLoggedIn && result.total) {
+      reviewService.reportStatus(bookId).then(flags => {
+        if (request !== reviewRequest) return;
+        for (const flag of flags) reportFlags.value[flag.review_id] = flag;
+      }).catch(() => {});
+    }
+  } catch {
+    if (request === reviewRequest) reviewsError.value = true;
+  } finally {
+    if (request === reviewRequest) reviewsLoading.value = false;
+  }
+}
 
 // Số lượng cuốn sách này hiện đã có trong giỏ hàng của user
 const currentInCart = computed(() => {
@@ -834,19 +911,6 @@ function triggerToast(msg, type = 'success') {
   }, 4000);
 }
 
-// Modal viết đánh giá (Placeholder giao diện)
-function openReviewModal() {
-  reviewRating.value = 5;
-  reviewTitle.value = '';
-  reviewComment.value = '';
-  showReviewModal.value = true;
-}
-
-function submitReviewPlaceholder() {
-  showReviewModal.value = false;
-  triggerToast('Cảm ơn bạn! Đánh giá của bạn sẽ được hiển thị sau khi hoàn tất mua và nhận hàng.');
-}
-
 // Điều hướng tới sách khác
 function navigateToBook(id) {
   router.push(`/books/${id}`);
@@ -857,6 +921,7 @@ function navigateToBook(id) {
 watch(() => route.params.id, (newId) => {
   if (newId) {
     loadBookDetail(newId);
+    loadReviews(newId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 });
@@ -865,11 +930,132 @@ onMounted(() => {
   const id = route.params.id;
   if (id) {
     loadBookDetail(id);
+    loadReviews(id);
   }
 });
 </script>
 
 <style scoped>
+.review-report-button,
+.review-report-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--bs-secondary-color);
+}
+
+.review-report-button {
+  min-height: 2rem;
+  padding: 0.25rem 0.5rem;
+  margin-inline-start: -0.5rem;
+  border: 0;
+  border-radius: 0.375rem;
+  background: transparent;
+  font-size: inherit;
+}
+
+.review-report-button .bi,
+.review-report-status .bi {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.review-report-button:hover:not(:disabled) {
+  color: var(--bs-primary-text-emphasis);
+  background-color: var(--bs-primary-bg-subtle);
+}
+
+.review-report-button:focus-visible {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: 2px;
+}
+
+.review-report-button:disabled {
+  opacity: 0.55;
+}
+
+.book-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #ad6500;
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.book-rating:hover {
+  text-decoration: underline;
+}
+
+.book-rating-stars {
+  display: inline-flex;
+  color: #f59e0b;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.book-rating-star {
+  position: relative;
+}
+
+.book-rating-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  overflow: hidden;
+}
+
+.review-list-heading {
+  padding: 0.75rem 0;
+  color: var(--bs-primary-text-emphasis);
+  border-bottom: 2px solid var(--bs-primary-border-subtle);
+}
+
+.review-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+  gap: 1.25rem;
+  padding: 1.125rem 0;
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+.review-author {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  overflow-wrap: anywhere;
+}
+
+.review-stars {
+  display: flex;
+  gap: 0.2rem;
+  color: #a86400;
+}
+
+.review-comment {
+  margin: 0.4rem 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.review-toggle {
+  padding: 0.25rem 0 0;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 575.98px) {
+  .review-entry {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.625rem;
+  }
+
+  .review-author {
+    flex-flow: row wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    column-gap: 0.75rem;
+  }
+}
+
 .cursor-pointer {
   cursor: pointer;
 }

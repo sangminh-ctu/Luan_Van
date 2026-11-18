@@ -4,10 +4,13 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useCartStore } from '@/stores/cartStore'
 import { useCategoryStore } from '@/stores/categoryStore'
+import { useNotificationStore } from '@/stores/notificationStore'
+import NotificationItem from '@/components/customer/NotificationItem.vue'
 
 const authStore = useAuthStore()
 const cartStore = useCartStore()
 const categoryStore = useCategoryStore()
+const notifications = useNotificationStore()
 const router = useRouter()
 const route = useRoute()
 
@@ -15,7 +18,32 @@ const showAccountMenu = ref(false)
 const showCategoryDropdown = ref(false)
 const searchKeyword = ref('')
 const dropdownRef = ref(null)
+const showNotifications = ref(false)
+const notificationRef = ref(null)
+const notificationButton = ref(null)
+const notificationActionError = ref(false)
+let notificationPoll
 
+function toggleNotifications() {
+  showNotifications.value = !showNotifications.value
+  if (showNotifications.value) {
+    notificationActionError.value = false
+    notifications.refresh()
+  }
+}
+
+function refreshVisibleNotifications() {
+  if (!document.hidden && authStore.isLoggedIn) notifications.refresh()
+}
+
+async function markNotificationRead(id, all = false) {
+  notificationActionError.value = false
+  try {
+    await notifications.markRead(id, all)
+  } catch {
+    notificationActionError.value = true
+  }
+}
 const currentCategoryId = computed(() => {
   return route.query.category_id ? Number(route.query.category_id) : null
 })
@@ -86,6 +114,7 @@ const handleResize = () => {
 }
 
 const handleClickOutside = (e) => {
+  if (!notificationRef.value?.contains(e.target)) showNotifications.value = false
   const inButton = dropdownRef.value && dropdownRef.value.contains(e.target)
   const inMenu = megaMenuRef.value && megaMenuRef.value.contains(e.target)
   if (!inButton && !inMenu) {
@@ -94,12 +123,25 @@ const handleClickOutside = (e) => {
 }
 
 const handleKeydown = (e) => {
-  if (e.key === 'Escape') showCategoryDropdown.value = false
+  if (e.key !== 'Escape') return
+  showCategoryDropdown.value = false
+  if (showNotifications.value) {
+    showNotifications.value = false
+    notificationButton.value?.focus()
+  }
 }
 
 watch(() => route.fullPath, () => {
   showCategoryDropdown.value = false
+  showNotifications.value = false
+  if (route.query.placed) refreshVisibleNotifications()
 })
+
+watch(() => authStore.token, () => {
+  showNotifications.value = false
+  notifications.reset()
+  notifications.refresh()
+}, { immediate: true })
 
 onMounted(() => {
   cartStore.fetchCart()
@@ -107,12 +149,18 @@ onMounted(() => {
   document.addEventListener('click', handleClickOutside)
   document.addEventListener('keydown', handleKeydown)
   window.addEventListener('resize', handleResize)
+  window.addEventListener('focus', refreshVisibleNotifications)
+  document.addEventListener('visibilitychange', refreshVisibleNotifications)
+  notificationPoll = window.setInterval(refreshVisibleNotifications, 60000)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
   document.removeEventListener('keydown', handleKeydown)
   window.removeEventListener('resize', handleResize)
+  window.removeEventListener('focus', refreshVisibleNotifications)
+  document.removeEventListener('visibilitychange', refreshVisibleNotifications)
+  window.clearInterval(notificationPoll)
 })
 </script>
 
@@ -125,15 +173,15 @@ onBeforeUnmount(() => {
 
     <!-- Middlebar (Logo, Search, Các nút icon mới) -->
     <div class="bg-white border-bottom py-3">
-      <div class="container d-flex align-items-center justify-content-between gap-4">
+      <div class="container header-main d-flex align-items-center justify-content-between gap-4">
         
         <!-- Logo -->
         <router-link to="/" class="text-decoration-none">
-          <img src="../../assets/images/logo/logo1.png" alt="FAHASA" height="40" style="object-fit: contain;">
+          <img src="../../assets/images/logo/logo1.png" alt="FAHASA" height="40" class="header-logo" style="object-fit: contain;">
         </router-link>
 
         <!-- Search Area -->
-        <div class="flex-grow-1 mx-2 d-flex align-items-center">
+        <div class="header-search flex-grow-1 mx-2 d-flex align-items-center">
           <!-- Thanh Search -->
           <div class="flex-grow-1 position-relative d-flex align-items-center bg-white border border-secondary-subtle" style="border-radius: 8px; padding: 4px;">
             <input 
@@ -158,13 +206,54 @@ onBeforeUnmount(() => {
         </div>
 
         <!-- Các Nút Icon -->
-        <div class="d-flex align-items-center gap-4 ms-3">
+        <div class="header-tools position-relative d-flex align-items-center gap-4 ms-3">
           <!-- Thông Báo -->
-          <div class="text-center text-secondary custom-icon-btn d-flex flex-column align-items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" class="mb-1">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            <div style="font-size: 13px;">Thông Báo</div>
+          <div ref="notificationRef" class="notification-anchor">
+            <button ref="notificationButton" type="button"
+              class="notification-trigger text-center text-secondary custom-icon-btn position-relative d-flex flex-column align-items-center border-0 bg-transparent p-0"
+              :aria-expanded="showNotifications" aria-controls="header-notifications" @click="toggleNotifications">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" class="mb-1" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              <span v-if="notifications.unread" class="notification-badge badge rounded-pill bg-primary">
+                <span aria-hidden="true">{{ notifications.unread > 99 ? '99+' : notifications.unread }}</span>
+                <span class="visually-hidden">{{ notifications.unread }} chưa đọc</span>
+              </span>
+              <span>Thông báo</span>
+            </button>
+            <section v-show="showNotifications" id="header-notifications"
+              class="notification-popover position-absolute bg-white border rounded-3 shadow overflow-hidden"
+              aria-labelledby="header-notifications-title">
+              <div class="d-flex align-items-center justify-content-between gap-2 p-3 border-bottom">
+                <h2 id="header-notifications-title" class="h6 fw-bold mb-0">
+                  Thông báo <span v-if="notifications.unread" class="badge rounded-pill bg-primary-subtle text-primary-emphasis">{{ notifications.unread }}</span>
+                </h2>
+                <button v-if="notifications.unread && notifications.recent.length" type="button"
+                  class="btn btn-link btn-sm p-0 text-decoration-none" :disabled="notifications.marking"
+                  @click="markNotificationRead(notifications.recent[0].notification_id, true)">Đánh dấu đã đọc</button>
+              </div>
+              <div v-if="!authStore.isLoggedIn" class="p-3 small text-secondary">
+                <router-link :to="{ name: 'login', query: { redirect: '/account/notifications' } }"
+                  class="text-primary fw-semibold">Đăng nhập</router-link> để xem thông báo.
+              </div>
+              <div v-else-if="notifications.error" class="p-3 small text-secondary" role="alert">
+                Không thể tải thông báo.
+                <button type="button" class="btn btn-sm btn-link p-0 ms-2" @click="notifications.refresh">Thử lại</button>
+              </div>
+              <p v-else-if="notifications.loading && !notifications.recent.length" class="p-3 small mb-0" role="status">Đang tải…</p>
+              <p v-else-if="!notifications.recent.length" class="p-3 small text-secondary mb-0">Bạn chưa có thông báo.</p>
+              <ul v-else class="notification-preview list-unstyled px-2 mb-0 small">
+                <li v-for="notification in notifications.recent" :key="notification.notification_id">
+                  <NotificationItem :notification="notification" compact @read="markNotificationRead($event)" />
+                </li>
+              </ul>
+              <p v-if="notificationActionError" class="small text-danger px-3 mb-2" role="alert">Không thể đánh dấu đã đọc.</p>
+              <div v-if="authStore.isLoggedIn" class="border-top p-2">
+                <router-link :to="{ name: 'customer-notifications' }"
+                  class="btn btn-sm btn-outline-secondary rounded-pill w-100"
+                  @click="showNotifications = false">Xem tất cả thông báo</router-link>
+              </div>
+            </section>
           </div>
           
           <!-- Giỏ Hàng -->
@@ -327,6 +416,26 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.notification-anchor { position: relative; }
+.notification-trigger { font-size: 13px; white-space: nowrap; }
+.notification-badge { position: absolute; top: -0.35rem; left: 58%; font-size: 0.625rem; }
+.notification-popover {
+  top: calc(100% + 0.5rem);
+  inset-inline-end: 0;
+  width: min(24rem, calc(100vw - 2rem));
+  z-index: 1060;
+}
+.notification-preview { max-height: min(55vh, 23rem); overflow-y: auto; }
+.notification-preview > li + li { border-top: 1px solid var(--bs-border-color); }
+@media (max-width: 767.98px) {
+  .header-main { flex-wrap: wrap; column-gap: 0.75rem !important; row-gap: 0.625rem !important; }
+  .header-search { order: 1; flex-basis: 100%; margin-inline: 0 !important; }
+  .header-logo { max-width: 34vw; height: auto; max-height: 40px; }
+  .header-tools { gap: 0.75rem !important; margin-inline-start: auto !important; }
+  .notification-anchor { position: static; }
+  .notification-popover { width: min(20rem, calc(100vw - 2rem)); }
+}
+
 .hover-danger:hover { color: #c92127 !important; }
 .hover-underline:hover { text-decoration: underline !important; }
 .custom-icon-btn { cursor: pointer; transition: color 0.2s; }

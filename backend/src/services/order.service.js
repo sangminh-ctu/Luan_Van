@@ -17,6 +17,7 @@ const vouchers = require("./voucher.service");
 const inventoryService = require("./admin/inventory.service");
 const payments = require("./payment.service");
 const gateway = require("./vnpay.gateway");
+const notifications = require("./notification.service");
 const {
   FREE_SHIPPING_THRESHOLD,
   STANDARD_SHIPPING_FEE,
@@ -629,6 +630,7 @@ class OrderService {
         transaction,
       });
 
+      await notifications.publishOrder(newOrder, "placed", transaction);
       await transaction.commit();
       createdOrderId = newOrder.order_id;
     } catch (error) {
@@ -843,6 +845,9 @@ class OrderService {
         { where: { order_id: order.order_id }, transaction },
       );
 
+      await notifications.publishOrder(order, "cancelled", transaction, {
+        reason: expiryPaymentId !== null ? "Đã hết thời hạn thanh toán." : null,
+      });
       await transaction.commit();
       cancelledOrderId = order.order_id;
     } catch (error) {
@@ -979,6 +984,11 @@ class OrderService {
       err.status = 400;
       throw err;
     }
+    const reason = payload.cancel_reason;
+    if (nextStatus === "cancelled" && reason != null &&
+        (typeof reason !== "string" || reason.length > 500 || reason.includes("\0"))) {
+      throw Object.assign(new Error("Lý do hủy phải là văn bản tối đa 500 ký tự"), { status: 400 });
+    }
 
     const transaction = await sequelize.transaction({
       isolationLevel: "READ COMMITTED",
@@ -1054,10 +1064,12 @@ class OrderService {
           );
         }
 
-        await Shipment.update(shipmentUpdate, {
+        const [, shipments] = await Shipment.update(shipmentUpdate, {
           where: { order_id: order.order_id },
           transaction,
+          returning: true,
         });
+        if (shipments[0]) await notifications.publishShipment(order, shipments[0], transaction);
       }
 
       // Nếu chuyển sang delivered -> COD tự động đặt payment_status = 'paid'
@@ -1073,6 +1085,11 @@ class OrderService {
 
       order.order_status = nextStatus;
       await order.save({ transaction });
+      if (nextStatus !== "shipping") {
+        await notifications.publishOrder(order, nextStatus, transaction, {
+          reason: nextStatus === "cancelled" ? reason?.trim() : null,
+        });
+      }
 
       await transaction.commit();
     } catch (error) {
@@ -1115,6 +1132,7 @@ class OrderService {
         err.status = 404;
         throw err;
       }
+      const previousStatus = shipment.shipping_status;
 
       if (payload.carrier_name !== undefined) {
         shipment.carrier_name = String(payload.carrier_name).trim() || null;
@@ -1137,6 +1155,9 @@ class OrderService {
       }
 
       await shipment.save({ transaction });
+      if (order.order_status === "shipping" && shipment.shipping_status !== previousStatus) {
+        await notifications.publishShipment(order, shipment, transaction);
+      }
     });
     return await this.getAdminOrderById(orderId);
   }

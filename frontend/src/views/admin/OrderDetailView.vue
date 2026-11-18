@@ -228,7 +228,7 @@
                 type="button"
                 class="btn btn-outline-danger fw-semibold py-2"
                 :disabled="isUpdating || onlineCancellationBlocked"
-                @click="showCancelConfirm = true"
+                @click="cancelReason = ''; showCancelConfirm = true"
               >
                 <i class="bi bi-x-circle me-1"></i>Hủy đơn & Hoàn kho
               </button>
@@ -259,7 +259,7 @@
                   type="button"
                   class="btn btn-primary fw-semibold py-2"
                   :disabled="isUpdating || paymentBlocked"
-                  @click="handleTransition('shipping')"
+                  @click="handleTransition('shipping', { shipping_status: 'picked_up' })"
                 >
                   <span v-if="isUpdating" class="spinner-border spinner-border-sm me-1"></span>
                   <i v-else class="bi bi-truck me-1"></i>
@@ -269,7 +269,7 @@
                   type="button"
                   class="btn btn-outline-danger fw-semibold py-2"
                   :disabled="isUpdating || onlineCancellationBlocked"
-                  @click="showCancelConfirm = true"
+                  @click="cancelReason = ''; showCancelConfirm = true"
                 >
                   <i class="bi bi-x-circle me-1"></i>Hủy đơn & Hoàn kho
                 </button>
@@ -278,6 +278,12 @@
 
             <!-- Bước 3: Đang giao hàng -> Xác nhận Đã giao hàng -->
             <div v-else-if="order.order_status === 'shipping'" class="d-grid gap-2">
+              <button v-if="order.shipment?.shipping_status === 'picked_up'" type="button"
+                class="btn btn-outline-primary fw-semibold py-2"
+                :disabled="isUpdating || paymentBlocked"
+                @click="handleSaveShipmentOnly('in_transit')">
+                <i class="bi bi-truck me-1" aria-hidden="true"></i> Xác nhận đang giao hàng
+              </button>
               <button
                 type="button"
                 class="btn btn-success fw-semibold py-2"
@@ -347,7 +353,7 @@
               type="button"
               class="btn btn-outline-secondary btn-sm w-100 fw-semibold"
               :disabled="isUpdating"
-              @click="handleSaveShipmentOnly"
+              @click="handleSaveShipmentOnly()"
             >
               Cập nhật thông tin vận đơn
             </button>
@@ -373,6 +379,10 @@
               Đơn hàng <strong>{{ order?.order_code }}</strong> sẽ chuyển sang trạng thái
               <strong>Đã hủy</strong> và hoàn lại toàn bộ số lượng sách vào kho.
             </p>
+            <label class="form-label w-100 text-start small">
+              Lý do hủy (không bắt buộc)
+              <textarea v-model.trim="cancelReason" class="form-control form-control-sm mt-1" rows="2" maxlength="500"></textarea>
+            </label>
             <div class="d-flex gap-2 justify-content-center">
               <button
                 type="button"
@@ -423,6 +433,7 @@ async function checkPayment() {
 const isLoading = ref(false);
 const isUpdating = ref(false);
 const showCancelConfirm = ref(false);
+const cancelReason = ref('');
 
 const shipmentForm = reactive({
   carrier_name: '',
@@ -557,14 +568,15 @@ async function loadOrder() {
   }
 }
 
-async function handleTransition(nextStatus) {
+async function handleTransition(nextStatus, details = {}) {
   if (!order.value) return;
   try {
     isUpdating.value = true;
     const res = await adminOrderService.updateOrderStatus(order.value.order_id, {
       order_status: nextStatus,
       carrier_name: shipmentForm.carrier_name,
-      tracking_code: shipmentForm.tracking_code
+      tracking_code: shipmentForm.tracking_code,
+      ...details
     });
     order.value = res.order;
     triggerToast(res.message || 'Cập nhật trạng thái thành công', 'success');
@@ -577,16 +589,17 @@ async function handleTransition(nextStatus) {
 
 async function confirmCancelByAdmin() {
   showCancelConfirm.value = false;
-  await handleTransition('cancelled');
+  await handleTransition('cancelled', { cancel_reason: cancelReason.value });
 }
 
-async function handleSaveShipmentOnly() {
+async function handleSaveShipmentOnly(status) {
   if (!order.value) return;
   try {
     isUpdating.value = true;
     const res = await adminOrderService.updateShipment(order.value.order_id, {
       carrier_name: shipmentForm.carrier_name,
-      tracking_code: shipmentForm.tracking_code
+      tracking_code: shipmentForm.tracking_code,
+      shipping_status: status
     });
     order.value = res.order;
     triggerToast('Đã lưu thông tin vận đơn', 'success');

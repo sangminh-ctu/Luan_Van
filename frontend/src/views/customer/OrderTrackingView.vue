@@ -58,14 +58,17 @@
 
       <!-- Tiêu đề trang -->
       <div class="d-flex align-items-center justify-content-between mb-3">
-        <h1 class="h4 fw-bold text-dark mb-0 text-uppercase">Đơn hàng của tôi</h1>
-        <router-link to="/" class="text-decoration-none text-secondary small fw-semibold">
+        <h1 class="h4 fw-bold text-dark mb-0 text-uppercase">{{ selectedOrderId ? 'Chi tiết đơn hàng' : 'Đơn hàng của tôi' }}</h1>
+        <router-link v-if="selectedOrderId" :to="{ name: 'customer-orders' }" class="text-decoration-none text-secondary small fw-semibold">
+          <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Đơn hàng của tôi
+        </router-link>
+        <router-link v-else to="/" class="text-decoration-none text-secondary small fw-semibold">
           <i class="bi bi-house-door me-1"></i>Về trang chủ
         </router-link>
       </div>
 
       <!-- Thanh lọc theo trạng thái -->
-      <div class="bg-white rounded-3 shadow-sm mb-3 px-2">
+      <div v-if="!selectedOrderId" class="bg-white rounded-3 shadow-sm mb-3 px-2">
         <ul class="nav nav-underline flex-nowrap overflow-auto">
           <li v-for="tab in statusTabs" :key="tab.value" class="nav-item">
             <button
@@ -83,8 +86,9 @@
       <!-- Trạng thái đang tải -->
       <div v-if="isLoading" class="bg-white rounded-3 shadow-sm p-5 text-center">
         <div class="spinner-border text-danger mb-3" role="status"></div>
-        <p class="text-secondary mb-0">Đang tải danh sách đơn hàng...</p>
+        <p class="text-secondary mb-0">Đang tải đơn hàng...</p>
       </div>
+      <div v-else-if="orderError" class="alert alert-danger" role="alert">{{ orderError }}</div>
 
       <!-- Trạng thái trống -->
       <div v-else-if="orders.length === 0" class="bg-white rounded-3 shadow-sm p-5 text-center">
@@ -143,6 +147,59 @@
               <div class="small text-secondary">
                 Đơn giá lúc mua: {{ formatCurrency(item.unit_price_at_purchase) }} × {{ item.quantity }}
               </div>
+              <button v-if="order.order_status === 'delivered' && !myReviews[item.order_item_id] && reviewItemId !== item.order_item_id"
+                type="button" class="btn btn-sm btn-outline-primary mt-2"
+                :disabled="reviewBusy" @click="openReview(item)">
+                Đánh giá
+              </button>
+              <div v-if="myReviews[item.order_item_id]" class="small border-start ps-3 mt-2">
+                <template v-if="myReviews[item.order_item_id].deleted_at">
+                  <strong class="text-secondary">Đánh giá đã được xóa trước đây</strong>
+                </template>
+                <template v-else-if="myReviews[item.order_item_id].visibility_status === 'hidden'">
+                  <strong class="text-warning-emphasis">Đánh giá đã bị ẩn</strong>
+                  <p v-if="myReviews[item.order_item_id].moderation_reason" class="mb-0 text-break">
+                    Lý do ẩn: {{ myReviews[item.order_item_id].moderation_reason }}
+                  </p>
+                </template>
+                <template v-else>
+                  <strong class="text-success">Đã đánh giá</strong>
+                  <div class="d-flex align-items-center gap-2 mt-1">
+                    <span class="review-summary-stars" role="img" :aria-label="`${myReviews[item.order_item_id].rating} trên 5 sao`">
+                      <i v-for="star in 5" :key="star" class="bi" aria-hidden="true"
+                        :class="star <= myReviews[item.order_item_id].rating ? 'bi-star-fill' : 'bi-star'"></i>
+                    </span>
+                    <time v-if="myReviews[item.order_item_id].created_at" class="text-secondary"
+                      :datetime="myReviews[item.order_item_id].created_at">{{ formatDateTime(myReviews[item.order_item_id].created_at) }}</time>
+                  </div>
+                  <p v-if="myReviews[item.order_item_id].comment" class="review-summary-comment mb-0 mt-1">
+                    {{ myReviews[item.order_item_id].comment }}
+                  </p>
+                </template>
+              </div>
+              <form v-if="reviewItemId === item.order_item_id" class="mt-2" @submit.prevent="saveReview(item)">
+                <p class="small text-secondary mb-2">Đánh giá chỉ gửi được một lần và không thể chỉnh sửa hoặc xóa.</p>
+                <fieldset class="mb-2" :disabled="reviewBusy">
+                  <legend class="form-label float-none fs-6 mb-1">Số sao</legend>
+                  <div class="d-flex gap-1">
+                    <label v-for="star in 5" :key="star" class="review-star-option">
+                      <input v-model="reviewRating" type="radio" :name="`review-rating-${item.order_item_id}`"
+                        :value="star" class="visually-hidden" required>
+                      <i class="bi" :class="star <= reviewRating ? 'bi-star-fill' : 'bi-star'" aria-hidden="true"></i>
+                      <span class="visually-hidden">{{ star }} sao</span>
+                    </label>
+                  </div>
+                </fieldset>
+                <label class="form-label d-block">
+                  Nhận xét (không bắt buộc)
+                  <textarea v-model="reviewComment" class="form-control" maxlength="1000" rows="3" :disabled="reviewBusy"></textarea>
+                </label>
+                <p v-if="reviewError" class="text-danger small" role="alert">{{ reviewError }}</p>
+                <div class="d-flex gap-2 flex-wrap">
+                  <button class="btn btn-sm btn-primary" :disabled="reviewBusy || !reviewRating">Gửi đánh giá</button>
+                  <button type="button" class="btn btn-sm btn-light" :disabled="reviewBusy" @click="reviewItemId = null">Đóng</button>
+                </div>
+              </form>
             </div>
             <div class="text-end fw-semibold text-dark">
               {{ formatCurrency(item.line_total) }}
@@ -201,7 +258,7 @@
 
         <!-- Phân trang (5 đơn / trang) -->
         <div
-          v-if="pagination.totalPages > 1"
+          v-if="!selectedOrderId && pagination.totalPages > 1"
           class="bg-white rounded-3 shadow-sm py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-2 mt-1"
         >
           <span class="small text-secondary">
@@ -283,14 +340,74 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, reactive, computed, watch, onBeforeUnmount } from 'vue';
 import { useRoute } from 'vue-router';
 import { orderService } from '@/services/orderService';
+import { reviewService } from '@/services/reviewService';
 import { getBookCoverUrl } from '@/utils/imageHelper';
 
 const route = useRoute();
+const selectedOrderId = computed(() => route.params.orderId);
+const orderError = ref('');
+let orderRequest = 0;
 
 const orders = ref([]);
+const myReviews = ref({});
+const reviewItemId = ref(null);
+const reviewRating = ref('');
+const reviewComment = ref('');
+const reviewBusy = ref(false);
+const reviewError = ref('');
+
+async function openReview(item) {
+  const itemId = item.order_item_id;
+  if (reviewBusy.value || myReviews.value[itemId]) return;
+  reviewBusy.value = true;
+  reviewError.value = '';
+  reviewItemId.value = null;
+  try {
+    const [review] = await reviewService.mine([itemId]);
+    if (review) {
+      myReviews.value[itemId] = review;
+      return;
+    }
+    reviewRating.value = '';
+    reviewComment.value = '';
+    reviewItemId.value = itemId;
+  } catch {
+    triggerToast('Không thể kiểm tra đánh giá. Vui lòng thử lại.', 'error');
+  } finally {
+    reviewBusy.value = false;
+  }
+}
+
+async function saveReview(item) {
+  if (reviewBusy.value || !reviewRating.value) return;
+  const itemId = item.order_item_id;
+  reviewBusy.value = true;
+  reviewError.value = '';
+  try {
+    myReviews.value[itemId] = await reviewService.create(itemId, {
+      rating: reviewRating.value,
+      comment: reviewComment.value,
+    });
+    reviewItemId.value = null;
+    triggerToast('Đã gửi đánh giá.');
+  } catch (error) {
+    reviewError.value = error.response?.data?.message || 'Không thể gửi đánh giá.';
+    if (error.response?.status === 409) {
+      const [review] = await reviewService.mine([itemId]).catch(() => []);
+      if (review) {
+        myReviews.value[itemId] = review;
+        reviewItemId.value = null;
+        triggerToast('Dòng đơn hàng này đã được đánh giá.');
+      }
+    }
+  } finally {
+    reviewBusy.value = false;
+  }
+}
+
 const isLoading = ref(false);
 const activeStatus = ref('all');
 const cancellingId = ref(null);
@@ -392,21 +509,42 @@ function getPaymentStatusLabel(status) {
 }
 
 async function fetchOrders() {
+  const request = ++orderRequest;
+  orderError.value = '';
   try {
     isLoading.value = true;
-    const res = await orderService.getMyOrders({
-      status: activeStatus.value,
-      page: pagination.page,
-      limit: pagination.limit
-    });
-    orders.value = res.orders || [];
-    if (res.pagination) {
-      Object.assign(pagination, res.pagination);
+    if (selectedOrderId.value) {
+      const { order } = await orderService.getMyOrderDetail(selectedOrderId.value);
+      if (request !== orderRequest) return;
+      orders.value = [order];
+    } else {
+      const res = await orderService.getMyOrders({
+        status: activeStatus.value,
+        page: pagination.page,
+        limit: pagination.limit
+      });
+      if (request !== orderRequest) return;
+      orders.value = res.orders || [];
+      if (res.pagination) Object.assign(pagination, res.pagination);
+    }
+    reviewItemId.value = null;
+    const itemIds = [...new Set(orders.value
+      .filter(order => order.order_status === 'delivered')
+      .flatMap(order => order.items.map(item => item.order_item_id)))];
+    if (itemIds.length) {
+      try {
+        for (let start = 0; start < itemIds.length; start += 100) {
+          const reviews = await reviewService.mine(itemIds.slice(start, start + 100));
+          for (const review of reviews) myReviews.value[review.order_item_id] = review;
+        }
+      } catch {
+        // Customers can retry loading their review using the item button.
+      }
     }
   } catch (error) {
-    triggerToast(error.response?.data?.message || 'Không thể tải danh sách đơn hàng', 'error');
+    if (request === orderRequest) orderError.value = error.response?.data?.message || 'Không thể tải đơn hàng.';
   } finally {
-    isLoading.value = false;
+    if (request === orderRequest) isLoading.value = false;
   }
 }
 
@@ -444,11 +582,39 @@ async function confirmCancelOrder() {
   }
 }
 
-onMounted(() => {
-  fetchOrders();
-});
+watch(selectedOrderId, fetchOrders, { immediate: true });
 
 onBeforeUnmount(() => {
   if (toastTimer) clearTimeout(toastTimer);
 });
 </script>
+
+<style scoped>
+.review-summary-stars {
+  display: inline-flex;
+  gap: 0.15rem;
+  color: #a86400;
+}
+
+.review-summary-comment {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.review-star-option {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.25rem;
+  color: #a86400;
+  font-size: 1.375rem;
+  cursor: pointer;
+}
+
+.review-star-option:focus-within {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: 1px;
+}
+</style>
