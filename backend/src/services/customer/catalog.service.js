@@ -1,6 +1,13 @@
 const pricing = require('../pricing.service');
-const { Op } = require('sequelize');
+const { Op, col, fn, where: sqlWhere } = require('sequelize');
 const { sequelize } = require('../../config/database');
+const vietnameseLetters = 'àáảãạăằắẳẵặâầấẩẫậđèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵ';
+const foldedLetters = vietnameseLetters.normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd');
+
+function foldCatalogText(column) {
+    const folded = fn('translate', fn('lower', col(column)), vietnameseLetters, foldedLetters);
+    return fn('regexp_replace', folded, '[^a-z0-9]+', ' ', 'g');
+}
 const { Book, Category, Author, Publisher, Supplier, BookImage, Inventory, Tag } = require('../../models/associations');
 
 // Sắp xếp tag theo display_order rồi theo tên
@@ -138,12 +145,32 @@ class CatalogService {
         )];
 
         // 4. Tìm kiếm theo tên hoặc ISBN
-        if (query.search && query.search.trim()) {
+        if (context.chatTitle && /^[a-z0-9 ]{1,150}$/.test(context.chatTitle)) {
+            where[Op.and] = [...(where[Op.and] || []),
+                sqlWhere(foldCatalogText('Book.title'), { [Op.like]: `%${context.chatTitle}%` })];
+        } else if (query.search && query.search.trim()) {
             const keyword = `%${query.search.trim()}%`;
             where[Op.or] = [
                 { title: { [Op.iLike]: keyword } },
                 { isbn: { [Op.iLike]: keyword } }
             ];
+        }
+        if (context.chatTopic && /^[a-z ]{2,80}$/.test(context.chatTopic)) {
+            const pattern = `(^| )${context.chatTopic}( |$)`;
+            const categoryText = foldCatalogText('category_name');
+            const categoryFilter = sqlWhere(categoryText, { [Op.regexp]: pattern });
+            const categoryWhere = sequelize.getQueryInterface().queryGenerator.whereItemsQuery(categoryFilter);
+            where[Op.and] = [...(where[Op.and] || []), { [Op.or]: [
+                ...['title', 'description'].map(attribute => sqlWhere(foldCatalogText(`Book.${attribute}`), { [Op.regexp]: pattern })),
+                sequelize.literal(`EXISTS (SELECT 1 FROM category c WHERE c.category_id = "Book"."category_id" AND ${categoryWhere})`),
+            ] }];
+        } else if (Array.isArray(context.chatTerms)) {
+            const terms = context.chatTerms.filter(term => /^[a-z]{2,30}$/.test(term)).slice(0, 20);
+            if (terms.length) {
+                const pattern = `(^| )(${terms.join('|')})( |$)`;
+                where[Op.and] = [...(where[Op.and] || []), { [Op.or]: ['title', 'description'].map(attribute =>
+                    sqlWhere(foldCatalogText(`Book.${attribute}`), { [Op.regexp]: pattern })) }];
+            }
         }
 
         // 5. Lọc theo thể loại (Validate chặt chẽ & đệ quy lấy toàn bộ nhánh con)
@@ -256,6 +283,14 @@ class CatalogService {
 
         // 12. Biểu thức tính giá sau giảm & tổng số lượng đã giao thành công (delivered)
         const finalPriceSql = sequelize.literal(pricing.effectiveSql('"Book"', pricingAt));
+        // Bộ lọc nội bộ (chatbot): giảm giá thực tế gồm discount_percent và Flash Sale đang diễn ra
+        if (context.discountedOnly || context.regularPriceOnly) {
+            const comparison = context.regularPriceOnly ? '>=' : '<';
+            where[Op.and] = [
+                ...(where[Op.and] || []),
+                sequelize.literal(`${pricing.effectiveSql('"Book"', pricingAt)} ${comparison} "Book"."price"`)
+            ];
+        }
         const totalSoldSql = sequelize.literal(`COALESCE((
             SELECT SUM(oi.quantity)
             FROM order_item oi
@@ -483,6 +518,21 @@ class CatalogService {
         Object.assign(json, pricing.decorate(json));
         json.total_sold = Number(json.total_sold) || 0;
         return sortTags(json);
+    }
+
+    /**
+     * Tóm tắt đánh giá công khai (điểm trung bình, số lượt) cho một nhóm sách
+     */
+    async getRatingSummaries(bookIds) {
+        const ids = [...new Set(bookIds)].filter(id => Number.isSafeInteger(id) && id > 0);
+        if (!ids.length) return new Map();
+        const [rows] = await sequelize.query(`
+            SELECT book_id, round(avg(rating), 1)::float AS average, count(*)::int AS total
+            FROM review
+            WHERE book_id IN (:ids) AND visibility_status = 'visible' AND deleted_at IS NULL
+            GROUP BY book_id
+        `, { replacements: { ids } });
+        return new Map(rows.map(row => [Number(row.book_id), { average: row.average, total: row.total }]));
     }
 
     /**

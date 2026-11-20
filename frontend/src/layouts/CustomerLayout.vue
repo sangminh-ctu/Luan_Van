@@ -5,6 +5,7 @@
       <RouterView />
     </main>
     <AppFooter />
+    <BookChat />
   </div>
 </template>
 
@@ -12,6 +13,7 @@
 import { RouterView } from 'vue-router'
 import AppHeader from '../components/customer/AppHeader.vue'
 import AppFooter from '../components/customer/AppFooter.vue'
+import BookChat from '../components/customer/BookChat.vue'
 </script>
 
 <style scoped>

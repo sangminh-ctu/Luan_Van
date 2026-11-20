@@ -64,6 +64,7 @@ const router = createRouter({
       children: [
         { path: '', name: 'admin-dashboard', component: DashboardView },
         { path: 'site-config', name: 'admin-site-config', component: () => import('@/views/admin/SiteConfigView.vue') },
+        { path: 'chat-knowledge', name: 'admin-chat-knowledge', component: () => import('@/views/admin/ChatKnowledgeView.vue') },
         { path: 'books', name: 'admin-books', component: BookListView },
         { path: 'books/reviews', name: 'admin-book-reviews', component: () => import('@/views/admin/BookReviewsView.vue') },
         { path: 'books/create', name: 'admin-books-create', component: BookFormView },

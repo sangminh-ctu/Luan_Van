@@ -1,0 +1,45 @@
+{
+  "hardware": {
+    "platform": "Windows-10-10.0.19045-SP0",
+    "processor": "Intel64 Family 6 Model 142 Stepping 9, GenuineIntel",
+    "python_version": "3.14.6",
+    "cpu_count_logical": 4,
+    "total_system_ram_gb": 7.9
+  },
+  "encoder": {
+    "backend": "open_clip_cpu",
+    "model_name": "ViT-B-32",
+    "pretrained": "laion2b_s34b_b79k",
+    "model_version": "clip-vit-b-32-laion2b_s34b_b79k",
+    "dimension": 512,
+    "load_time_ms": 12641.67
+  },
+  "memory_mb": {
+    "before_model_load_rss_mb": 32.01,
+    "after_model_load_rss_mb": 910.85,
+    "after_warmup_rss_mb": 920.93,
+    "peak_inference_rss_mb": 920.63,
+    "model_delta_rss_mb": 888.92
+  },
+  "latency_single_image_ms": {
+    "samples": 20,
+    "real_images_count": 6,
+    "model_load_time_ms": 12642.73,
+    "mean_ms": 218.37,
+    "median_p50_ms": 221.37,
+    "p95_ms": 309.42,
+    "min_ms": 149.19,
+    "max_ms": 343.28
+  },
+  "cosine_search_in_memory_ms": {
+    "cosine_6_vectors_ms": 0.0218,
+    "cosine_100_vectors_ms": 0.015,
+    "cosine_1000_vectors_ms": 0.0799,
+    "cosine_10000_vectors_ms": 0.9732
+  },
+  "discrimination_on_real_covers": {
+    "self_similarity_mean": 1.0,
+    "different_books_similarity_mean": 0.229,
+    "different_books_similarity_max": 0.5061
+  }
+}

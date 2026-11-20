@@ -84,6 +84,7 @@
         </button>
         <ul id="admin-settings-menu" class="nav flex-column ms-3 mt-1" v-show="openMenu.settings">
           <li class="nav-item"><router-link to="/admin/site-config" class="nav-link text-muted py-2 small" active-class="text-primary fw-bold bg-light">Sách theo tháng<i class="bi bi-dash me-1"></i></router-link></li>
+          <li class="nav-item"><router-link to="/admin/chat-knowledge" class="nav-link text-muted py-2 small" active-class="text-primary fw-bold bg-light">Tài liệu chatbot</router-link></li>
         </ul>
       </li>
     </ul>
@@ -132,7 +133,7 @@ watch(() => route.path, (newPath) => {
   if (newPath.startsWith('/admin/books') || ['/admin/categories', '/admin/authors', '/admin/publishers'].includes(newPath)) openMenu.books = true
   if (['/admin/inventory', '/admin/suppliers'].includes(newPath) || newPath.startsWith('/admin/stock-receipts')) openMenu.inventory = true
   if (newPath.startsWith('/admin/orders') || newPath.startsWith('/admin/shipments')) openMenu.orders = true
-  if (newPath.startsWith('/admin/site-config')) openMenu.settings = true
+  if (newPath.startsWith('/admin/site-config') || newPath.startsWith('/admin/chat-knowledge')) openMenu.settings = true
 }, { immediate: true })
 </script>
 

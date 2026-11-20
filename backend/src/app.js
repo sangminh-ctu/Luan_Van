@@ -27,6 +27,7 @@ app.use('/api/auth', require('./routes/auth.routes'));
 // Customer & Public Routes
 app.use('/api/categories', require('./routes/customer/category.routes'));
 app.use('/api/books', require('./routes/customer/book.routes'));
+app.use('/api/chat', require('./services/customer/chat/routes'));
 app.use('/api/reviews', require('./routes/customer/review.routes'));
 app.use('/api/notifications', require('./routes/customer/notification.routes'));
 app.use('/api/site-config', require('./routes/customer/site-config.routes'));
@@ -40,6 +41,7 @@ app.use('/api/membership', require('./routes/customer/membership.routes'));
 app.use('/api/flash-sales', require('./routes/customer/flash-sale.routes'));
 
 // Admin Routes
+app.use('/api/admin/chat-knowledge', verifyToken, requireAdmin, require('./services/customer/chat/knowledge').router);
 app.use('/api/admin/site-config', verifyToken, requireAdmin, require('./routes/admin/site-config.routes'));
 app.use('/api/admin/flash-sales', verifyToken, requireAdmin, require('./routes/admin/flash-sale.routes'));
 app.use('/api/admin/vouchers', verifyToken, requireAdmin, require('./routes/admin/voucher.routes'));

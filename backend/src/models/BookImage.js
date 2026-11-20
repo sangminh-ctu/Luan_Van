@@ -6,13 +6,19 @@ const BookImage = sequelize.define('BookImage', {
     book_id: { type: DataTypes.INTEGER, allowNull: false },
     image_url: { type: DataTypes.STRING(500), allowNull: false },
     is_primary: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
-    // embedding_vector hỗ trợ pgvector, tạm thời map TEXT hoặc để trống khi chưa xử lý AI
+    image_hash: { type: DataTypes.STRING(64), allowNull: true },
     embedding_vector: { type: DataTypes.TEXT, allowNull: true },
+    embedding_status: {
+        type: DataTypes.STRING(20),
+        allowNull: false,
+        defaultValue: 'pending',
+    },
     model_version: { type: DataTypes.STRING(50), allowNull: true },
-    created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
+    created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    updated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
 }, {
     tableName: 'book_image',
-    timestamps: false
+    timestamps: false,
 });
 
 module.exports = BookImage;
